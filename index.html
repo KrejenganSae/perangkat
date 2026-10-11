@@ -31,8 +31,8 @@ h1{font:600 clamp(1.7rem,4vw,2.6rem)/1.1 var(--serif);margin:0 0 .35rem;letter-s
 .sub{color:var(--muted);margin:0}
 .sub:empty{display:none}
 #instansi{font-size:1.02rem;letter-spacing:.03em;color:var(--ink);margin-bottom:.55rem}
-.stats{display:flex;justify-content:center;gap:1rem;margin-top:1.4rem;flex-wrap:wrap}
-.stats div{min-width:8.5rem;padding:.7rem 1.4rem;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(8.5rem,auto));justify-content:center;gap:1rem;margin-top:1.4rem}
+.stats div{padding:.7rem 1.4rem;background:var(--panel);border:1px solid var(--line);border-radius:10px}
 .stats b{display:block;font:600 2rem/1.1 var(--serif);color:var(--green)}
 .stats span{font-size:.88rem;color:var(--muted)}
 main{padding:1.5rem 0 4rem}
@@ -110,7 +110,7 @@ ul.ultah li{break-inside:avoid;display:grid;grid-template-columns:auto 1fr;gap:.
 .stats small{display:block;font-size:.78rem;color:var(--muted)}
 @media (max-width:40rem){.dash{grid-template-columns:1fr}.bar{grid-template-columns:6.8rem 1fr 2rem}}
 footer{padding:0 0 2rem;color:var(--muted);font-size:.85rem}
-@media (max-width:40rem){.dlg{grid-template-columns:1fr}.stats{gap:1.75rem}}
+@media (max-width:40rem){.dlg{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr;gap:.75rem}.stats div:first-child{grid-column:1/-1}}
 </style>
 </head>
 <body>
@@ -247,7 +247,7 @@ function panel(judul, isi, catatan) {
 
 function dasbor() {
   const orang = semuaAktif();
-  const baris = ["Kepala Desa", ...ORDE].map(g => [g === "Perangkat Desa" ? "Belum dirinci" : judul(g), orang.filter(([p]) => p.kelompok === g).length]);
+  const baris = ["Kepala Desa", ...ORDE.filter(g => g !== "Perangkat Desa")].map(g => [judul(g), orang.filter(([p]) => p.kelompok === g).length]);
   const mx = Math.max(...baris.map(b => b[1]), 1);
   const struktur = el("div", {}, baris.map(([g, n]) => el("div", {class: "bar"},
     el("span", {text: g}), el("span", {class: "bt"}, el("i", {style: `width:${n / mx * 100}%`})), el("b", {text: String(n)}))));
@@ -323,7 +323,7 @@ function halamanDesa(d) {
   const komposisi = urut.map(g => el("span", {text: judul(g) + " " + jml(g)}));
   const h = hitung(d);
   const pens = d.perangkat.filter(p => p.pensiun_status === "lewat");
-  $("isi").replaceChildren(
+  $("isi").replaceChildren(...[
     el("button", {class: "back", text: "‹ Semua desa", onclick: () => go("")}),
     el("h2", {text: "Desa " + d.nama, style: "font-size:1.9rem"}),
     k ? (k.lowong
@@ -336,7 +336,7 @@ function halamanDesa(d) {
     ...urut.map(g => el("section", {class: "grp"},
       el("h2", {style: "font-size:1.1rem"}, judul(g), " ", el("small", {text: "(" + jml(g) + ")"})),
       el("ul", {class: "list"}, per[g].map(p => barisOrang(p, d, false))))),
-    pens.length ? el("p", {class: "pens", text: "Pensiun: " + pens.map(p => `${p.nama} (${tgl(p.pensiun)})`).join("; ") + "."}) : null);
+    pens.length ? el("p", {class: "pens", text: "Pensiun: " + pens.map(p => `${p.nama} (${tgl(p.pensiun)})`).join("; ") + "."}) : null].filter(Boolean));
 }
 
 function rute() {

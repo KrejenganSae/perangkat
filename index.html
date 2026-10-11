@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perangkat Desa</title>
+<style>
+:root{
+  --paper:#fcfbf8; --panel:#ffffff; --ink:#1b2421; --muted:#5d6864; --line:#dcdad2;
+  --green:#0e5a44; --mint:#e1f4ec; --amber:#8a5206; --amber-bg:#fbefd9; --red:#a32d2d; --red-bg:#f9e3e1;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{--paper:#121715; --panel:#1a211e; --ink:#eae8e1; --muted:#9aa5a0; --line:#2c3632;
+    --green:#6fd1ad; --mint:#173a2e; --amber:#f0b45a; --amber-bg:#3a2a10; --red:#f08a84; --red-bg:#40201e;}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 var(--sans)}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--green);outline-offset:2px}
+.wrap{max-width:66rem;margin:auto;padding:0 clamp(1rem,4vw,2.5rem)}
+header{padding:2.25rem 0 1.25rem;border-bottom:1px solid var(--line)}
+h1{font:600 clamp(1.7rem,4vw,2.6rem)/1.1 var(--serif);margin:0 0 .35rem;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:0}
+.head{display:flex;gap:1rem;align-items:center}
+#logo{height:4.5rem;width:auto;flex:none}
+.stats{display:flex;gap:2.5rem;margin-top:1.1rem}
+.stats b{display:block;font:600 1.9rem/1.1 var(--serif);color:var(--green)}
+.stats span{font-size:.88rem;color:var(--muted)}
+main{padding:1.5rem 0 4rem}
+.cari{width:100%;padding:.7rem .9rem;border:1px solid var(--line);border-radius:10px;background:var(--panel);margin-bottom:1.5rem}
+h2{font:600 1.35rem/1.2 var(--serif);margin:0 0 .75rem}
+h2 small{font:400 .9rem var(--sans);color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(15.5rem,1fr));gap:.9rem}
+.kartu{display:grid;grid-template-columns:3.2rem 1fr;gap:.8rem;align-items:center;text-align:left;padding:.9rem;
+  border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.kartu:hover{border-color:var(--green)}
+.kartu .dn{font:600 1.15rem/1.2 var(--serif)}
+.kartu .kd{font-size:.82rem;color:var(--muted);text-transform:uppercase;overflow-wrap:anywhere}
+.kartu .jm{font-size:.82rem;color:var(--green);margin-top:.15rem}
+.pic{width:3.2rem;height:4.2rem;border-radius:4px;background:var(--mint);color:var(--green);display:grid;place-items:center;
+  font:600 1.05rem var(--serif);overflow:hidden;flex:none}
+.pic .avatar{width:72%;height:auto;margin-top:12%;fill:currentColor;opacity:.55}
+.pic.kosong-foto{background:none;border:1.5px dashed var(--line);color:var(--muted)}
+.pic img{width:100%;height:100%;object-fit:cover}
+.back{background:none;border:0;color:var(--green);padding:.25rem 0;margin-bottom:.75rem}
+.back:hover{text-decoration:underline}
+.kades{display:grid;grid-template-columns:4.5rem 1fr;gap:1rem;align-items:center;width:100%;text-align:left;
+  padding:1rem;border:1px solid var(--line);border-radius:10px;background:var(--panel);margin:.5rem 0 1.75rem}
+.kades:hover{border-color:var(--green)}
+.kades .pic{width:4.5rem;height:6rem;font-size:1.3rem}
+.kades .lbl{font-size:.85rem;color:var(--muted)}
+.nama{font-weight:600;text-transform:uppercase;overflow-wrap:anywhere}
+.jab{color:var(--muted);font-size:.9rem}
+.komp{display:flex;flex-wrap:wrap;gap:.5rem;margin:0 0 1.5rem}
+.komp span{padding:.25rem .7rem;border-radius:99px;background:var(--mint);color:var(--green);font-size:.88rem}
+.grp{margin-bottom:1.5rem}
+ul.list{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+ul.list li{border-bottom:1px solid var(--line)}
+.row{display:grid;grid-template-columns:auto 1fr;gap:.9rem;align-items:center;width:100%;padding:.55rem .3rem;background:none;border:0;text-align:left}
+button.row:hover{background:var(--panel)}
+.row .pic{width:2.4rem;height:3.1rem;font-size:.9rem}
+.lowong .nama{color:var(--muted);font-weight:400;text-transform:none;font-style:italic}
+.lencana{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.5rem}
+.badge{font-size:.78rem;padding:.1rem .6rem;border-radius:99px;background:var(--amber-bg);color:var(--amber);overflow-wrap:anywhere}
+.badge.ok{background:var(--mint);color:var(--green)}
+.dtag{color:var(--green);font-size:.85rem}
+.kosong{padding:1.5rem .3rem;color:var(--muted)}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);padding:0;width:min(34rem,94vw)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.dlg{display:grid;grid-template-columns:8rem 1fr;gap:1.25rem;padding:1.5rem}
+.dlg .pic{width:8rem;height:10.5rem;font-size:2rem}
+.dlg h3{font:600 1.3rem/1.2 var(--serif);margin:0 0 .15rem;text-transform:uppercase;overflow-wrap:anywhere}
+dl{margin:.9rem 0 0;display:grid;grid-template-columns:auto 1fr;gap:.3rem .9rem;font-size:.92rem}
+dt{color:var(--muted)} dd{margin:0;overflow-wrap:anywhere}
+.acts{display:flex;justify-content:flex-end;gap:.5rem;padding:0 1.5rem 1.25rem}
+.acts button{padding:.45rem 1.1rem;border:1px solid var(--line);border-radius:8px;background:none}
+footer{padding:0 0 2rem;color:var(--muted);font-size:.85rem}
+@media (max-width:40rem){.dlg{grid-template-columns:1fr}.stats{gap:1.75rem}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="head">
+    <img id="logo" src="logo.png" alt="Lambang Pemerintah Kabupaten Probolinggo" onerror="this.remove()">
+    <div>
+      <h1 id="judul">Perangkat Desa</h1>
+      <p class="sub" id="instansi"></p>
+      <p class="sub" id="sub">Memuat data…</p>
+    </div>
+  </div>
+  <div class="stats" id="stats"></div>
+</div></header>
+
+<div class="wrap">
+  <main id="isi"></main>
+  <footer id="foot"></footer>
+</div>
+<dialog id="dlg" aria-label="Profil"></dialog>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const el = (tag, props = {}, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "class") e.className = v; else if (k === "text") e.textContent = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) if (c != null) e.append(c);
+  return e;
+};
+const tgl = (iso) => iso ? new Date(iso + "T00:00:00").toLocaleDateString("id-ID", {day: "numeric", month: "long", year: "numeric"}) : null;
+const inisial = (n) => n.split(/\s+/).filter(Boolean).slice(0, 2).map(s => s[0]).join("").toUpperCase();
+const ORDE = ["Sekretaris Desa", "Kasi", "Kaur", "Kepala Dusun", "Lainnya"];
+
+let DATA, query = "";
+const kades = (d) => d.perangkat.find(p => p.kelompok === "Kepala Desa");
+const staf = (d) => d.perangkat.filter(p => p.kelompok !== "Kepala Desa");
+const terisi = (d) => staf(d).filter(p => !p.lowong).length;
+
+function avatar() {
+  const NS = "http://www.w3.org/2000/svg";
+  const s = document.createElementNS(NS, "svg");
+  s.setAttribute("viewBox", "0 0 64 80"); s.setAttribute("aria-hidden", "true"); s.setAttribute("class", "avatar");
+  const kepala = document.createElementNS(NS, "circle");
+  kepala.setAttribute("cx", "32"); kepala.setAttribute("cy", "29"); kepala.setAttribute("r", "13");
+  const bahu = document.createElementNS(NS, "path");
+  bahu.setAttribute("d", "M6 80C6 59 19 50 32 50S58 59 58 80Z");
+  s.append(kepala, bahu);
+  return s;
+}
+
+function pic(p) {
+  const d = el("div", {class: "pic"});
+  if (p && p.lowong) { d.classList.add("kosong-foto"); d.textContent = "–"; return d; }
+  if (p && p.foto) {
+    const img = el("img", {src: p.foto, alt: "Foto " + p.nama, loading: "lazy"});
+    img.addEventListener("error", () => img.replaceWith(avatar()));
+    d.append(img);
+  } else d.append(avatar());
+  return d;
+}
+
+function profil(p, d) {
+  const dl = el("dl");
+  const f = (k, v) => { if (v) dl.append(el("dt", {text: k}), el("dd", {text: v})); };
+  f("Desa", d.nama);
+  f("Usia", p.usia != null ? p.usia + " tahun" : null);
+  f("Jenis kelamin", p.jenis_kelamin);
+  f("Pendidikan", p.pendidikan);
+  f("Agama", p.agama);
+  f("Status", p.status);
+  dl.append(el("dt", {text: "SK Pengangkatan"}), el("dd", {text: p.sk_pengangkatan || "-"}));
+  dl.append(el("dt", {text: "SK Terakhir"}), el("dd", {text: tgl(p.sk_terakhir) || "-"}));
+  dl.append(el("dt", {text: "Riwayat kinerja"}), el("dd", {text: p.kinerja || "-"}));
+  dl.append(el("dt", {text: "Riwayat sanksi"}), el("dd", {text: p.sanksi ? "Ada" : "-"}));
+  const nomor = (p.telepon || "").replace(/[^\d+]/g, "");
+  dl.append(el("dt", {text: "Telepon"}), el("dd", {}, nomor ? el("a", {href: "tel:" + nomor, text: p.telepon}) : "-"));
+  const lencana = [];
+  if (p.pensiun_status === "mendekati") lencana.push(el("span", {class: "badge", text: "Pensiun " + tgl(p.pensiun)}));
+  if (p.pensiun_status === "lewat") lencana.push(el("span", {class: "badge", text: "Melewati batas pensiun"}));
+  if (p.kinerja) lencana.push(el("span", {class: "badge ok", text: p.kinerja}));
+  const dlg = $("dlg");
+  const lihat = location.hash !== "#/desa/" + d.slug
+    ? el("button", {text: "Lihat desa", onclick: () => { dlg.close(); location.hash = "#/desa/" + d.slug; }}) : null;
+  dlg.replaceChildren(
+    el("div", {class: "dlg"}, pic(p), el("div", {},
+      el("h3", {text: p.nama}), el("div", {class: "jab", text: p.jabatan}),
+      lencana.length ? el("div", {class: "lencana"}, lencana) : null, dl)),
+    el("div", {class: "acts"}, lihat, el("button", {text: "Tutup", onclick: () => dlg.close()})));
+  dlg.showModal();
+}
+
+function barisOrang(p, d, tampilDesa) {
+  const isi = [pic(p), el("div", {},
+    el("div", {class: "nama", text: p.lowong ? "Belum terisi" : p.nama}),
+    el("div", {class: "jab", text: p.jabatan}),
+    tampilDesa ? el("div", {class: "dtag", text: "Desa " + d.nama}) : null)];
+  return el("li", {class: p.lowong ? "lowong" : ""},
+    p.lowong ? el("div", {class: "row"}, isi)
+             : el("button", {class: "row", "aria-label": "Profil " + p.nama, onclick: () => profil(p, d)}, isi));
+}
+
+function kartuDesa(d) {
+  const k = kades(d);
+  return el("button", {class: "kartu", onclick: () => { location.hash = "#/desa/" + d.slug; }},
+    pic(k),
+    el("div", {},
+      el("div", {class: "dn", text: d.nama}),
+      el("div", {class: "kd", text: k && !k.lowong ? k.nama : "Kepala desa belum terisi"}),
+      el("div", {class: "jm", text: terisi(d) + " perangkat desa"})));
+}
+
+function beranda() {
+  const q = query.trim().toLowerCase();
+  const cari = el("input", {class: "cari", type: "search", value: query, "aria-label": "Cari desa, nama, atau jabatan",
+    placeholder: "Cari desa, nama, atau jabatan"});
+  cari.addEventListener("input", () => {
+    query = cari.value; const pos = cari.selectionStart; beranda(); const n = $("isi").querySelector("input"); n.focus(); n.setSelectionRange(pos, pos);
+  });
+  const bagian = [cari];
+  if (!q) {
+    bagian.push(el("h2", {}, "Desa ", el("small", {text: "(" + DATA.desa.length + ")"})), el("div", {class: "grid"}, DATA.desa.map(kartuDesa)));
+  } else {
+    const desa = DATA.desa.filter(d => d.nama.toLowerCase().includes(q));
+    const orang = [];
+    for (const d of DATA.desa) for (const p of d.perangkat)
+      if (!p.lowong && ((p.nama + " " + p.jabatan).toLowerCase().includes(q))) orang.push([p, d]);
+    if (desa.length) bagian.push(el("h2", {}, "Desa ", el("small", {text: "(" + desa.length + ")"})), el("div", {class: "grid", style: "margin-bottom:1.5rem"}, desa.map(kartuDesa)));
+    if (orang.length) bagian.push(el("h2", {}, "Orang ", el("small", {text: "(" + orang.length + ")"})), el("ul", {class: "list"}, orang.map(([p, d]) => barisOrang(p, d, true))));
+    if (!desa.length && !orang.length) bagian.push(el("p", {class: "kosong", text: "Tidak ada yang cocok. Coba nama desa, nama orang, atau jabatan lain."}));
+  }
+  $("isi").replaceChildren(...bagian);
+}
+
+function halamanDesa(d) {
+  const k = kades(d);
+  const lst = staf(d);
+  const per = {};
+  for (const p of lst) (per[p.kelompok] ||= []).push(p);
+  const urut = ORDE.filter(g => per[g]);
+  const komposisi = urut.map(g => el("span", {text: g + " " + per[g].filter(p => !p.lowong).length}));
+  $("isi").replaceChildren(
+    el("button", {class: "back", text: "‹ Semua desa", onclick: () => { location.hash = "#/"; }}),
+    el("h2", {text: "Desa " + d.nama, style: "font-size:1.9rem"}),
+    k ? (k.lowong
+      ? el("div", {class: "kades"}, pic(k), el("div", {}, el("div", {class: "lbl", text: "Kepala Desa"}), el("div", {class: "nama", style: "font-weight:400;font-style:italic;color:var(--muted)", text: "Belum terisi"})))
+      : el("button", {class: "kades", "aria-label": "Profil " + k.nama, onclick: () => profil(k, d)}, pic(k),
+          el("div", {}, el("div", {class: "lbl", text: k.jabatan}), el("div", {class: "nama", text: k.nama}), el("div", {class: "jab", text: k.usia != null ? k.usia + " tahun" : ""}))))
+      : null,
+    el("h2", {}, "Perangkat desa ", el("small", {text: "(" + terisi(d) + ")"})),
+    el("div", {class: "komp"}, komposisi),
+    urut.map(g => el("section", {class: "grp"},
+      el("h2", {style: "font-size:1.1rem"}, g, " ", el("small", {text: "(" + per[g].filter(p => !p.lowong).length + ")"})),
+      el("ul", {class: "list"}, per[g].map(p => barisOrang(p, d, false))))));
+}
+
+function rute() {
+  $("dlg").open && $("dlg").close();
+  const m = location.hash.match(/^#\/desa\/(.+)$/);
+  const d = m && DATA.desa.find(x => x.slug === decodeURIComponent(m[1]));
+  if (d) { document.title = `Desa ${d.nama} - Perangkat Desa`; halamanDesa(d); }
+  else { document.title = `Perangkat Desa Kecamatan ${DATA.kecamatan}`; beranda(); }
+  window.scrollTo(0, 0);
+}
+
+function pasang(d) {
+  DATA = d;
+  $("judul").textContent = `Perangkat Desa Kecamatan ${d.kecamatan}`;
+  $("instansi").textContent = d.instansi || "";
+  $("sub").textContent = "Data diperbarui " + tgl(d.diperbarui);
+  const lg = $("logo");
+  if (lg) { const ic = document.createElement("link"); ic.rel = "icon"; ic.href = "logo.png"; document.head.append(ic); }
+  const jml = d.desa.reduce((n, x) => n + terisi(x), 0);
+  $("stats").replaceChildren(...[[d.desa.length, "desa"], [jml, "perangkat desa"]]
+    .map(([n, t]) => el("div", {}, el("b", {text: String(n)}), el("span", {text: t}))));
+  $("foot").textContent = "Jumlah perangkat desa tidak termasuk kepala desa. Tanggal lahir tidak ditampilkan; usia dihitung saat data dibuat.";
+  window.addEventListener("hashchange", rute);
+  rute();
+}
+
+fetch("data.json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(pasang)
+  .catch(() => { $("sub").textContent = "Data belum bisa dimuat. Muat ulang halaman, atau hubungi operator kecamatan."; });
+</script>
+</body>
+</html>

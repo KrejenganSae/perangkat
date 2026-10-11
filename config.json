@@ -1,0 +1,12 @@
+{
+  "instansi": "Pemerintah Kabupaten Probolinggo",
+  "kecamatan": "Krejengan",
+  "ignore_sheets": [
+    "CATATAN"
+  ],
+  "usia_pensiun": 60,
+  "bulan_peringatan": 12,
+  "usia_min": 17,
+  "usia_maks": 80,
+  "lebar_foto": 480
+}

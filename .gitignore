@@ -1,0 +1,7 @@
+# Excel asli (ada NIK/KK) tidak boleh masuk repositori
+*asli*.xlsx
+*asli*.xls
+lokal/
+dist/
+__pycache__/
+~$*

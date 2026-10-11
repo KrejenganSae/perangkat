@@ -35,7 +35,8 @@ CFG = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
 
 KOLOM = [
     "NO", "NAMA", "TANGGAL LAHIR", "JENIS KELAMIN", "JABATAN",
-    "NOMOR SK PENGANGKATAN", "TMT PENGANGKATAN", "SK JABATAN TERAKHIR",
+    "SK PENGANGKATAN", "PINDAIAN SK PENGANGKATAN", "TMT PENGANGKATAN",
+    "SK JABATAN TERAKHIR", "PINDAIAN SK JABATAN TERAKHIR",
     "PENDIDIKAN", "AGAMA", "STATUS", "KINERJA/PENGHARGAAN", "RIWAYAT PEMBINAAN",
     "TELEPON", "PAS FOTO",
 ]
@@ -79,6 +80,19 @@ def daftar(v):
     if v is None:
         return []
     return [t for t in (re.sub(r"\s+", " ", x).strip() for x in re.split(r"[\n;]+", str(v))) if t]
+
+
+def status_scan(v, lok, nama, kolom):
+    """'ada' -> True, 'tidak ada'/'belum' -> False, kosong -> None."""
+    t = re.sub(r"\s+", " ", str(v)).strip().lower() if v is not None else ""
+    if not t:
+        return None
+    if t == "ada":
+        return True
+    if t.startswith("tidak") or t.startswith("belum"):
+        return False
+    warning(lok, f"{nama}, kolom {kolom}: '{v}' tidak dikenal (isi 'ada' atau 'tidak ada')")
+    return None
 
 
 def bersih(v):
@@ -196,6 +210,8 @@ def proses():
         error("data/perangkat.xlsx", "Berkas tidak ditemukan di folder data")
         return None
     wb = load_workbook(XLSX, read_only=True, data_only=True)
+    pagu = baca_pagu(wb)
+    pagu_terpakai = set()
     foto = indeks_foto()
     foto_terpakai = set()
     hasil = []
@@ -215,6 +231,12 @@ def proses():
             return None
 
         idx = {k: cari(k) for k in KOLOM}
+        # judul polos "PINDAIAN SK" di sebelah kanan kolom SK-nya juga diterima
+        for k, dasar in (("PINDAIAN SK PENGANGKATAN", "SK PENGANGKATAN"), ("PINDAIAN SK JABATAN TERAKHIR", "SK JABATAN TERAKHIR")):
+            if idx[k] is None and idx[dasar] is not None:
+                j = idx[dasar] + 1
+                if j < len(header) and header[j] == "PINDAIAN SK":
+                    idx[k] = j
         hilang = [k for k, i in idx.items() if i is None]
         if hilang:
             error(desa, "Kolom hilang atau salah ketik: " + ", ".join(hilang))
@@ -312,9 +334,11 @@ def proses():
                 "pendidikan": pendidikan_baku(g("PENDIDIKAN")),
                 "agama": bersih(g("AGAMA")),
                 "status": bersih(g("STATUS")),
-                "sk_pengangkatan": bersih(g("NOMOR SK PENGANGKATAN")),
+                "sk_pengangkatan": bersih(g("SK PENGANGKATAN")),
+                "scan_pengangkatan": status_scan(g("PINDAIAN SK PENGANGKATAN"), lok, nama, "PINDAIAN SK PENGANGKATAN"),
                 "tmt": tgl["TMT PENGANGKATAN"].isoformat() if tgl["TMT PENGANGKATAN"] else None,
                 "sk_terakhir": bersih(g("SK JABATAN TERAKHIR")),
+                "scan_terakhir": status_scan(g("PINDAIAN SK JABATAN TERAKHIR"), lok, nama, "PINDAIAN SK JABATAN TERAKHIR"),
                 "pensiun": pensiun,
                 "pensiun_status": sp,
                 "ultah_hari": lahir.day if ultah else None,
@@ -336,8 +360,17 @@ def proses():
             info(desa, f"{cnt['Perangkat Desa']} orang berjabatan umum (mis. 'PERANGKAT DESA'), ditempatkan di kelompok Perangkat Desa sampai jabatannya dirinci")
         if cnt["Perangkat Desa"] < 3 and (cnt["Sekretaris Desa"] < 1 or cnt["Kasi"] < 3 or cnt["Kaur"] < 3):
             info(desa, f"Struktur belum lengkap: Sekretaris {cnt['Sekretaris Desa']}/1, Kasi {cnt['Kasi']}/3, Kaur {cnt['Kaur']}/3 (baris belum ada di Excel atau jabatannya berbeda)")
-        hasil.append({"nama": desa, "slug": slug_desa, "perangkat": orang})
+        p_desa = pagu.get(dk)
+        if p_desa:
+            pagu_terpakai.add(dk)
+        elif pagu:
+            warning(desa, "Pagu siltap desa ini tidak ada di sheet Siltap")
+        hasil.append({"nama": desa, "slug": slug_desa, "perangkat": orang,
+                      "siltap": hitung_siltap(orang, p_desa[1] if p_desa else None)})
 
+    for k, (nm, _) in pagu.items():
+        if k not in pagu_terpakai:
+            warning("Siltap", f"Baris '{nm}' tidak cocok dengan nama sheet desa mana pun")
     # folder foto tanpa sheet
     sheet_kunci = {kunci(d["nama"]) for d in hasil}
     for k, d in foto.items():
@@ -373,6 +406,53 @@ def ringkas(desa):
         "lowong": sum(1 for p in semua if p["lowong"]),
         "pensiun_tahun_ini": sum(1 for p in semua if (p.get("pensiun") or "").startswith(str(HARI_INI.year))),
         "foto": sum(1 for p in aktif if p["foto"]),
+    }
+
+
+def baca_pagu(wb):
+    """{kunci_desa: (nama, pagu_rupiah)} dari sheet Siltap (kolom A desa, kolom B pagu)."""
+    pagu = {}
+    if "Siltap" not in wb.sheetnames:
+        warning("Siltap", "Sheet Siltap tidak ada; bagian Pagu Siltap tidak ditampilkan")
+        return pagu
+    for r in wb["Siltap"].iter_rows(values_only=True):
+        if len(r) < 2 or not r[0] or kunci(r[0]) == "jumlah":
+            continue
+        v = r[1]
+        n = int(v) if isinstance(v, (int, float)) else int(re.sub(r"\D", "", str(v or "")) or -1)
+        if n >= 0:
+            pagu[kunci(r[0])] = (str(r[0]).strip(), n)
+    return pagu
+
+
+def hitung_siltap(orang, pagu):
+    """Kebutuhan siltap setahun: kades, sekdes, perangkat (staf tidak dihitung).
+    Yang pensiun tetap dihitung sampai 'bulan_taliasih' bulan sejak bulan pensiun."""
+    T = CFG["siltap"]
+    tahun = HARI_INI.year
+    total, kosong, bergeser = 0, 0, 0
+    for p in orang:
+        kel = p["kelompok"]
+        if kel == "Staf":
+            continue
+        if p["lowong"]:
+            kosong += 1
+            continue
+        tarif = T["kades"] if kel == "Kepala Desa" else T["sekdes"] if kel == "Sekretaris Desa" else T["perangkat"]
+        bulan = T["bulan"]
+        if p.get("pensiun"):
+            tp = date.fromisoformat(p["pensiun"])
+            terakhir = tp.year * 12 + tp.month - 1 + T["bulan_taliasih"] - 1  # indeks bulan gaji terakhir
+            bulan = max(0, min(T["bulan"], terakhir - tahun * 12 + 1))
+            if bulan < T["bulan"]:
+                bergeser += 1
+        total += tarif * bulan
+    return {
+        "pagu": pagu,
+        "kebutuhan": total,
+        "silpa": None if pagu is None else pagu - total,
+        "kosong": kosong,
+        "pensiun": bergeser,
     }
 
 
@@ -437,6 +517,7 @@ def main():
         "diperbarui": HARI_INI.isoformat(),
         "data_per": tanggal_data().isoformat(),
         "tahun": HARI_INI.year,
+        "siltap_tarif": CFG["siltap"],
         "bulan": HARI_INI.month,
         "ringkasan": ringkas(desa),
         "desa": desa,

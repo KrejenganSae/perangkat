@@ -113,6 +113,22 @@ ul.ultah li{break-inside:avoid;display:grid;grid-template-columns:auto 1fr;gap:.
 .pens{font-size:.82rem;color:var(--muted);margin:.5rem 0 0}
 .stats small{display:block;font-size:.78rem;color:var(--muted)}
 @media (max-width:40rem){.dash{grid-template-columns:1fr}.bar{grid-template-columns:6.8rem 1fr 2rem}}
+.cekl{margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--line)}
+.cekl h2{text-align:center;margin-bottom:.2rem}
+.cekl .ring{text-align:center;color:var(--muted);font-size:.82rem;margin:0 0 1rem}
+table.cl{width:100%;border-collapse:collapse}
+.cl th{font-size:.7rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:center;padding:.5rem .5rem;border-bottom:1px solid var(--ink)}
+.cl th:first-child,.cl td:first-child{text-align:left}
+.cl td{padding:.55rem .5rem;border-bottom:1px solid var(--line);vertical-align:middle}
+.cl td:not(:first-child){text-align:center;white-space:nowrap;width:8.5rem}
+.cl tbody tr:hover{background:var(--panel)}
+.ck{display:inline-flex;align-items:center;gap:.45rem;font-size:.85rem}
+.ck::before{content:"";width:.55rem;height:.55rem;border-radius:50%;background:currentColor}
+.ck.ya{color:var(--green)}
+.ck.tdk{color:var(--muted)}
+.ck.tdk::before{background:none;box-shadow:inset 0 0 0 1.5px currentColor}
+.ck.kos{color:var(--muted)}
+.ck.kos::before{display:none}
 footer{padding:2.5rem 0 2.75rem;text-align:center}
 .orn{display:flex;align-items:center;justify-content:center;gap:.8rem;color:var(--green);font-size:.55rem;margin-bottom:.9rem}
 .orn::before,.orn::after{content:"";width:5.5rem;height:1px;background:linear-gradient(90deg,transparent,var(--line))}
@@ -347,7 +363,25 @@ function halamanDesa(d) {
     ...urut.map(g => el("section", {class: "grp"},
       el("h2", {style: "font-size:1.1rem"}, judul(g), " ", el("small", {text: "(" + jml(g) + ")"})),
       el("ul", {class: "list"}, per[g].map(p => barisOrang(p, d, false))))),
+    checklistSK(per),
     pens.length ? el("p", {class: "pens", text: "Pensiun: " + pens.map(p => `${p.nama} (${tgl(p.pensiun)})`).join("; ") + "."}) : null].filter(Boolean));
+}
+
+function checklistSK(per) {
+  const daftar = ORDE.flatMap(g => (per[g] || []).filter(aktif));
+  if (!daftar.length) return null;
+  const sel = (v) => el("span", {class: "ck " + (v === true ? "ya" : v === false ? "tdk" : "kos"), text: v === true ? "Ada" : v === false ? "Tidak ada" : "–"});
+  const n1 = daftar.filter(p => p.scan_pengangkatan === true).length;
+  const n2 = daftar.filter(p => p.scan_terakhir === true).length;
+  return el("section", {class: "cekl"},
+    el("h2", {text: "Checklist pemenuhan Scan SK"}),
+    el("p", {class: "ring", text: `SK Pengangkatan ${n1} dari ${daftar.length} · SK Jabatan Terakhir ${n2} dari ${daftar.length}`}),
+    el("table", {class: "cl"},
+      el("thead", {}, el("tr", {}, el("th", {text: "Nama"}), el("th", {text: "SK Pengangkatan"}), el("th", {text: "SK Jabatan Terakhir"}))),
+      el("tbody", {}, daftar.map(p => el("tr", {},
+        el("td", {}, el("div", {class: "nama", text: p.nama}), el("div", {class: "jab", style: "text-transform:capitalize", text: p.jabatan.toLowerCase()})),
+        el("td", {}, sel(p.scan_pengangkatan)),
+        el("td", {}, sel(p.scan_terakhir)))))));
 }
 
 function rute() {

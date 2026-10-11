@@ -21,13 +21,17 @@ button,input{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:3px solid var(--green);outline-offset:2px}
 .wrap{max-width:66rem;margin:auto;padding:0 clamp(1rem,4vw,2.5rem)}
-header{padding:2.25rem 0 1.25rem;border-bottom:1px solid var(--line)}
+header{position:relative;text-align:center;padding:2.25rem 0 1.75rem;border-top:4px solid var(--green);border-bottom:1px solid var(--line);
+  background:
+    radial-gradient(circle at 1px 1px,color-mix(in srgb,var(--green) 14%,transparent) 1px,transparent 0) 0 0/22px 22px,
+    linear-gradient(180deg,var(--mint),var(--paper))}
+#logo{display:block;height:5rem;width:auto;margin:0 auto .9rem}
 h1{font:600 clamp(1.7rem,4vw,2.6rem)/1.1 var(--serif);margin:0 0 .35rem;letter-spacing:-.01em}
 .sub{color:var(--muted);margin:0}
-.head{display:flex;gap:1rem;align-items:center}
-#logo{height:4.5rem;width:auto;flex:none}
-.stats{display:flex;gap:2.5rem;margin-top:1.1rem}
-.stats b{display:block;font:600 1.9rem/1.1 var(--serif);color:var(--green)}
+.sub:empty{display:none}
+.stats{display:flex;justify-content:center;gap:1rem;margin-top:1.4rem;flex-wrap:wrap}
+.stats div{min-width:9rem;padding:.7rem 1.4rem;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.stats b{display:block;font:600 2rem/1.1 var(--serif);color:var(--green)}
 .stats span{font-size:.88rem;color:var(--muted)}
 main{padding:1.5rem 0 4rem}
 .cari{width:100%;padding:.7rem .9rem;border:1px solid var(--line);border-radius:10px;background:var(--panel);margin-bottom:1.5rem}
@@ -83,20 +87,16 @@ footer{padding:0 0 2rem;color:var(--muted);font-size:.85rem}
 </head>
 <body>
 <header><div class="wrap">
-  <div class="head">
-    <img id="logo" src="logo.png" alt="Lambang Pemerintah Kabupaten Probolinggo" onerror="this.remove()">
-    <div>
-      <h1 id="judul">Perangkat Desa</h1>
-      <p class="sub" id="instansi"></p>
-      <p class="sub" id="sub">Memuat data…</p>
-    </div>
-  </div>
+  <img id="logo" src="logo.png" alt="Lambang Pemerintah Kabupaten Probolinggo" onerror="this.remove()">
+  <h1 id="judul">Perangkat Desa</h1>
+  <p class="sub" id="instansi"></p>
+  <p class="sub" id="sub">Memuat data…</p>
   <div class="stats" id="stats"></div>
 </div></header>
 
 <div class="wrap">
   <main id="isi"></main>
-  <footer id="foot"></footer>
+  <footer id="foot" style="text-align:center"></footer>
 </div>
 <dialog id="dlg" aria-label="Profil"></dialog>
 
@@ -233,7 +233,7 @@ function halamanDesa(d) {
       : null,
     el("h2", {}, "Perangkat desa ", el("small", {text: "(" + terisi(d) + ")"})),
     el("div", {class: "komp"}, komposisi),
-    urut.map(g => el("section", {class: "grp"},
+    ...urut.map(g => el("section", {class: "grp"},
       el("h2", {style: "font-size:1.1rem"}, g, " ", el("small", {text: "(" + per[g].filter(p => !p.lowong).length + ")"})),
       el("ul", {class: "list"}, per[g].map(p => barisOrang(p, d, false))))));
 }
@@ -251,13 +251,13 @@ function pasang(d) {
   DATA = d;
   $("judul").textContent = `Perangkat Desa Kecamatan ${d.kecamatan}`;
   $("instansi").textContent = d.instansi || "";
-  $("sub").textContent = "Data diperbarui " + tgl(d.diperbarui);
+  $("sub").textContent = "";
   const lg = $("logo");
   if (lg) { const ic = document.createElement("link"); ic.rel = "icon"; ic.href = "logo.png"; document.head.append(ic); }
   const jml = d.desa.reduce((n, x) => n + terisi(x), 0);
   $("stats").replaceChildren(...[[d.desa.length, "desa"], [jml, "perangkat desa"]]
     .map(([n, t]) => el("div", {}, el("b", {text: String(n)}), el("span", {text: t}))));
-  $("foot").textContent = "Jumlah perangkat desa tidak termasuk kepala desa. Tanggal lahir tidak ditampilkan; usia dihitung saat data dibuat.";
+  $("foot").textContent = "Data per " + tgl(d.data_per || d.diperbarui);
   window.addEventListener("hashchange", rute);
   rute();
 }

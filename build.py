@@ -11,6 +11,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 import unicodedata
 from datetime import date, datetime, timedelta, timezone
@@ -310,6 +311,19 @@ def proses():
     return hasil
 
 
+def tanggal_data():
+    """Tanggal commit terakhir yang mengubah data/perangkat.xlsx (WIB); cadangan: waktu ubah berkas."""
+    try:
+        out = subprocess.run(
+            ["git", "log", "-1", "--format=%cI", "--", "data/perangkat.xlsx"],
+            cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
+        if out:
+            return datetime.fromisoformat(out).astimezone(WIB).date()
+    except Exception:
+        pass
+    return datetime.fromtimestamp(XLSX.stat().st_mtime, WIB).date()
+
+
 def ringkas(desa):
     """Kepala desa dihitung terpisah dari perangkat desa."""
     semua = [p for d in desa for p in d["perangkat"] if not p["lowong"]]
@@ -356,6 +370,7 @@ def main():
         "instansi": CFG["instansi"],
         "kecamatan": CFG["kecamatan"],
         "diperbarui": HARI_INI.isoformat(),
+        "data_per": tanggal_data().isoformat(),
         "ringkasan": ringkas(desa),
         "desa": desa,
     }

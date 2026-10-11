@@ -3,18 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Perangkat Desa</title>
+<title>Profil Perangkat Desa</title>
 <meta name="base" content="./">
 <style>
 :root{
   --paper:#fcfbf8; --panel:#ffffff; --ink:#1b2421; --muted:#5d6864; --line:#dcdad2;
   --green:#0e5a44; --mint:#e1f4ec; --amber:#8a5206; --amber-bg:#fbefd9; --red:#a32d2d; --red-bg:#f9e3e1;
+  --blue:#2b6a8f; --gold:#9a6a12;
   --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
   --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
 }
 @media (prefers-color-scheme:dark){
   :root{--paper:#121715; --panel:#1a211e; --ink:#eae8e1; --muted:#9aa5a0; --line:#2c3632;
-    --green:#6fd1ad; --mint:#173a2e; --amber:#f0b45a; --amber-bg:#3a2a10; --red:#f08a84; --red-bg:#40201e;}
+    --green:#6fd1ad; --mint:#173a2e; --blue:#7fb4d6; --gold:#e0b25a; --amber:#f0b45a; --amber-bg:#3a2a10; --red:#f08a84; --red-bg:#40201e;}
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 var(--sans)}
@@ -32,8 +33,11 @@ h1{font:600 clamp(1.7rem,4vw,2.6rem)/1.1 var(--serif);margin:0 0 .35rem;letter-s
 .sub:empty{display:none}
 #instansi{font-size:1.02rem;letter-spacing:.03em;color:var(--ink);margin-bottom:.55rem}
 .stats{display:grid;grid-template-columns:repeat(3,minmax(8.5rem,auto));justify-content:center;gap:1rem;margin-top:1.4rem}
-.stats div{padding:.7rem 1.4rem;background:var(--panel);border:1px solid var(--line);border-radius:10px}
-.stats b{display:block;font:600 2rem/1.1 var(--serif);color:var(--green)}
+.stats div{--ac:var(--green);padding:.75rem 1.4rem .7rem;border:1px solid var(--line);border-top:3px solid var(--ac);border-radius:10px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--ac) 9%,var(--panel)),var(--panel))}
+.stats div:nth-child(2){--ac:var(--blue)}
+.stats div:nth-child(3){--ac:var(--gold)}
+.stats b{display:block;font:600 2rem/1.1 var(--serif);color:var(--ac)}
 .stats span{font-size:.88rem;color:var(--muted)}
 main{padding:1.5rem 0 4rem}
 .cari{width:100%;padding:.7rem .9rem;border:1px solid var(--line);border-radius:10px;background:var(--panel);margin-bottom:1.5rem}
@@ -85,7 +89,7 @@ dt{color:var(--muted)} dd{margin:0;overflow-wrap:anywhere}
 .acts button{padding:.45rem 1.1rem;border:1px solid var(--line);border-radius:8px;background:none}
 .dash{display:grid;grid-template-columns:1.15fr 1fr;gap:.9rem;margin-bottom:2rem}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:1rem 1.15rem}
-.panel h3{font:600 .8rem var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 .85rem}
+.panel h3{text-align:center;font:600 .8rem var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 .85rem}
 .bar{display:grid;grid-template-columns:10.2rem 1fr 2rem;gap:.6rem;align-items:center;font-size:.88rem;margin:.4rem 0}
 .bar .bt{height:.55rem;background:var(--mint);border-radius:99px;overflow:hidden}
 .bar .bt i{display:block;height:100%;background:var(--green);border-radius:99px}
@@ -96,7 +100,7 @@ dt{color:var(--muted)} dd{margin:0;overflow-wrap:anywhere}
 .kol .kt{display:flex;align-items:flex-end;width:100%;flex:1;max-height:6rem;background:linear-gradient(var(--line),var(--line)) center bottom/1px 100% no-repeat}
 .kol .kt i{display:block;width:100%;background:var(--green);border-radius:4px 4px 0 0;opacity:.9}
 .kol em{font-style:normal;color:var(--muted);margin-top:.35rem;font-size:.8rem}
-.cat{margin:.8rem 0 0;font-size:.78rem;color:var(--muted)}
+.cat{text-align:center;margin:.8rem 0 0;font-size:.78rem;color:var(--muted)}
 .info{margin-top:2.25rem;padding-top:1.25rem;border-top:1px solid var(--line)}
 .info h2{font-size:1.05rem;color:var(--muted)}
 ul.ultah{list-style:none;margin:0;padding:0;columns:2 19rem;column-gap:2rem;font-size:.9rem}
@@ -109,7 +113,13 @@ ul.ultah li{break-inside:avoid;display:grid;grid-template-columns:auto 1fr;gap:.
 .pens{font-size:.82rem;color:var(--muted);margin:.5rem 0 0}
 .stats small{display:block;font-size:.78rem;color:var(--muted)}
 @media (max-width:40rem){.dash{grid-template-columns:1fr}.bar{grid-template-columns:6.8rem 1fr 2rem}}
-footer{padding:0 0 2rem;color:var(--muted);font-size:.85rem}
+footer{padding:2.5rem 0 2.75rem;text-align:center}
+.orn{display:flex;align-items:center;justify-content:center;gap:.8rem;color:var(--green);font-size:.55rem;margin-bottom:.9rem}
+.orn::before,.orn::after{content:"";width:5.5rem;height:1px;background:linear-gradient(90deg,transparent,var(--line))}
+.orn::after{transform:scaleX(-1)}
+.fl{font-size:.7rem;letter-spacing:.28em;text-transform:uppercase;color:var(--muted)}
+.fd{font:italic 400 1.1rem/1.4 var(--serif);color:var(--ink);margin-top:.15rem}
+@media (max-width:40rem){.dash{grid-template-columns:1fr}.bar{grid-template-columns:6.8rem 1fr 2rem}}
 @media (max-width:40rem){.dlg{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr;gap:.75rem}.stats div:first-child{grid-column:1/-1}}
 </style>
 </head>
@@ -117,14 +127,14 @@ footer{padding:0 0 2rem;color:var(--muted);font-size:.85rem}
 <header><div class="wrap">
   <img id="logo" alt="Lambang Pemerintah Kabupaten Probolinggo" onerror="this.remove()">
   <p class="sub" id="instansi"></p>
-  <h1 id="judul">Perangkat Desa</h1>
+  <h1 id="judul">Profil Perangkat Desa</h1>
   <p class="sub" id="sub">Memuat data…</p>
   <div class="stats" id="stats"></div>
 </div></header>
 
 <div class="wrap">
   <main id="isi"></main>
-  <footer id="foot" style="text-align:center"></footer>
+  <footer id="foot"></footer>
 </div>
 <dialog id="dlg" aria-label="Profil"></dialog>
 
@@ -201,14 +211,15 @@ function profil(p, d) {
   f("Agama", p.agama);
   f("Status", p.status);
   dl.append(el("dt", {text: "SK Pengangkatan"}), el("dd", {text: p.sk_pengangkatan || "-"}));
-  dl.append(el("dt", {text: "SK Terakhir"}), el("dd", {text: tgl(p.sk_terakhir) || "-"}));
-  dl.append(el("dt", {text: "Riwayat kinerja"}), el("dd", {text: p.kinerja || "-"}));
-  dl.append(el("dt", {text: "Riwayat sanksi"}), el("dd", {text: p.sanksi ? "Ada" : "-"}));
+  dl.append(el("dt", {text: "TMT Pengangkatan"}), el("dd", {text: tgl(p.tmt) || "-"}));
+  dl.append(el("dt", {text: "SK Jabatan Terakhir"}), el("dd", {text: p.sk_terakhir || "-"}));
+  dl.append(el("dt", {text: "Kinerja/Penghargaan"}), el("dd", {}, p.kinerja ? p.kinerja.map(k => el("div", {text: k})) : "-"));
+  dl.append(el("dt", {text: "Riwayat Pembinaan"}), el("dd", {text: p.pembinaan ? "Ada" : "-"}));
   const nomor = (p.telepon || "").replace(/[^\d+]/g, "");
   dl.append(el("dt", {text: "Telepon"}), el("dd", {}, nomor ? el("a", {href: "tel:" + nomor, text: p.telepon}) : "-"));
   const lencana = [];
   if (p.pensiun_status) lencana.push(el("span", {class: "badge", text: "Pensiun " + tgl(p.pensiun)}));
-  if (p.kinerja) lencana.push(el("span", {class: "badge ok", text: p.kinerja}));
+  for (const k of p.kinerja || []) lencana.push(el("span", {class: "badge ok", text: k}));
   const dlg = $("dlg");
   const lihat = slugSekarang() !== d.slug
     ? el("button", {text: "Lihat desa", onclick: () => { dlg.close(); go(d.slug); }}) : null;
@@ -261,7 +272,7 @@ function dasbor() {
 
   return el("div", {class: "dash"},
     panel("Jumlah per struktur", struktur),
-    panel("Sebaran usia", sebaran, `Dari ${usia.length} orang yang tanggal lahirnya tercatat.`));
+    panel("Sebaran usia", sebaran));
 }
 
 /* ---------- info bawah ---------- */
@@ -346,14 +357,14 @@ function rute() {
   const slug = slugSekarang();
   const d = slug && DATA.desa.find(x => x.slug === slug);
   if (slug && !d) history.replaceState({}, "", BASE);
-  if (d) { document.title = `Desa ${d.nama} - Perangkat Desa`; halamanDesa(d); }
-  else { document.title = `Perangkat Desa Kecamatan ${DATA.kecamatan}`; beranda(); }
+  if (d) { document.title = `Desa ${d.nama} - Profil Perangkat Desa`; halamanDesa(d); }
+  else { document.title = `Profil Perangkat Desa Kecamatan ${DATA.kecamatan}`; beranda(); }
   window.scrollTo(0, 0);
 }
 
 function pasang(d) {
   DATA = d;
-  $("judul").textContent = `Perangkat Desa Kecamatan ${d.kecamatan}`;
+  $("judul").replaceChildren("Profil Perangkat Desa", el("br"), "Kecamatan " + d.kecamatan);
   $("instansi").textContent = d.instansi || "";
   $("sub").textContent = "";
   const lg = $("logo");
@@ -365,7 +376,7 @@ function pasang(d) {
   $("stats").replaceChildren(
     ...[[d.desa.length, "desa"], [tot.perangkat, "perangkat desa"], [tot.staf, "staf perangkat"]]
       .map(([n, t]) => el("div", {}, el("b", {text: String(n)}), el("span", {text: t}))));
-  $("foot").textContent = "Data per " + tgl(d.data_per || d.diperbarui);
+  $("foot").replaceChildren(el("div", {class: "orn", "aria-hidden": "true", text: "◆"}), el("div", {class: "fl", text: "Data per"}), el("div", {class: "fd", text: tgl(d.data_per || d.diperbarui)}));
   window.addEventListener("popstate", rute);
   rute();
 }

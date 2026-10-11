@@ -34,10 +34,10 @@ DIST = ROOT / "dist"
 CFG = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
 
 KOLOM = [
-    "NO", "NAMA", "TEMPAT TANGGAL LAHIR", "JENIS KELAMIN", "JABATAN",
-    "TMT/SK TERAKHIR", "NOMOR SK", "TANGGAL SK", "PEJABAT YANG MENERBITKAN",
-    "PENDIDIKAN", "AGAMA", "STATUS", "SK PENGANGKATAN", "TELEPON",
-    "SANKSI", "KINERJA", "PAS FOTO",
+    "NO", "NAMA", "TANGGAL LAHIR", "JENIS KELAMIN", "JABATAN",
+    "NOMOR SK PENGANGKATAN", "TMT PENGANGKATAN", "SK JABATAN TERAKHIR",
+    "PENDIDIKAN", "AGAMA", "STATUS", "KINERJA/PENGHARGAAN", "RIWAYAT PEMBINAAN",
+    "TELEPON", "PAS FOTO",
 ]
 EKSTENSI_FOTO = {".jpg", ".jpeg", ".png", ".webp"}
 WIB = timezone(timedelta(hours=7))
@@ -67,6 +67,18 @@ def slug(teks):
 def kunci(teks):
     """Kunci pencocokan nama/folder: huruf kecil, tanpa spasi dan tanda baca."""
     return re.sub(r"[^a-z0-9]", "", slug(teks))
+
+
+def norm_kolom(t):
+    """Samakan judul kolom: huruf besar, spasi rapat, tanpa spasi di sekitar '/'."""
+    return re.sub(r"\s*/\s*", "/", re.sub(r"\s+", " ", str(t).upper().strip())) if t is not None else ""
+
+
+def daftar(v):
+    """Isian banyak dalam satu sel: dipisah baris baru (Alt+Enter) atau titik koma."""
+    if v is None:
+        return []
+    return [t for t in (re.sub(r"\s+", " ", x).strip() for x in re.split(r"[\n;]+", str(v))) if t]
 
 
 def bersih(v):
@@ -194,13 +206,19 @@ def proses():
         if desa in CFG["ignore_sheets"]:
             continue
         baris = ws.iter_rows(values_only=True)
-        header = [bersih(c) for c in next(baris, [])]
-        header = [h.upper() if h else h for h in header]
-        hilang = [k for k in KOLOM if k not in header]
+        header = [norm_kolom(c) for c in next(baris, [])]
+
+        def cari(k):  # judul boleh diberi keterangan dalam kurung, mis. "SK JABATAN TERAKHIR (MUTASI/PENGANGKATAN)"
+            for i, h in enumerate(header):
+                if h == k or h.startswith(k + " ("):
+                    return i
+            return None
+
+        idx = {k: cari(k) for k in KOLOM}
+        hilang = [k for k, i in idx.items() if i is None]
         if hilang:
             error(desa, "Kolom hilang atau salah ketik: " + ", ".join(hilang))
             continue
-        idx = {k: header.index(k) for k in KOLOM}
 
         orang, nama_terlihat = [], {}
         dk = kunci(desa)
@@ -224,8 +242,9 @@ def proses():
                     })
                     info(lok, f"{jabatan}: nama kosong, ditampilkan sebagai lowong")
                 continue
-            if not jabatan:
-                error(lok, f"{nama}: jabatan kosong")
+            if not jabatan:  # data belum lengkap: jangan menghentikan build
+                warning(lok, f"{nama}: jabatan kosong, ditampilkan sebagai PERANGKAT DESA sampai diisi")
+                jabatan = "PERANGKAT DESA"
 
             if nama.upper() in nama_terlihat:
                 warning(lok, f"Nama ganda di desa yang sama ({nama}); foto bisa tertukar")
@@ -233,23 +252,21 @@ def proses():
 
             # tanggal
             tgl = {}
-            for k in ("TEMPAT TANGGAL LAHIR", "TMT/SK TERAKHIR", "TANGGAL SK"):
+            for k in ("TANGGAL LAHIR", "TMT PENGANGKATAN"):
                 try:
                     tgl[k] = baca_tanggal(g(k))
                 except ValueError as e:
                     error(lok, f"{nama}, kolom {k}: {e}")
                     tgl[k] = None
-            lahir = tgl["TEMPAT TANGGAL LAHIR"]
+            lahir = tgl["TANGGAL LAHIR"]
             usia = None
             if lahir is None:
-                if not bersih(g("TEMPAT TANGGAL LAHIR")):
+                if not bersih(g("TANGGAL LAHIR")):
                     warning(lok, f"{nama}: tanggal lahir kosong, usia tidak bisa dihitung")
             else:
                 usia = hitung_usia(lahir)
                 if not CFG["usia_min"] <= usia <= CFG["usia_maks"]:
                     error(lok, f"{nama}: usia {usia} tahun tidak wajar (lahir {lahir})")
-            if tgl["TANGGAL SK"] and tgl["TANGGAL SK"] > HARI_INI:
-                warning(lok, f"{nama}: tanggal SK di masa depan ({tgl['TANGGAL SK']})")
 
             jk = bersih(g("JENIS KELAMIN"))
             jk = jk.upper() if jk else None
@@ -270,7 +287,8 @@ def proses():
             elif status_foto and "belum" not in status_foto.lower():
                 warning(lok, f"{nama}: kolom PAS FOTO '{status_foto}', tetapi berkas foto tidak ada")
 
-            sanksi = bersih(g("SANKSI"))
+            kinerja = daftar(g("KINERJA/PENGHARGAAN"))
+            pembinaan = daftar(g("RIWAYAT PEMBINAAN"))
             pensiun = sp = None
             if lahir is not None and kelompok(jabatan) != "Kepala Desa":  # aturan usia berlaku bagi perangkat, bukan kades
                 sp = status_pensiun(tanggal_pensiun(lahir))
@@ -294,15 +312,16 @@ def proses():
                 "pendidikan": pendidikan_baku(g("PENDIDIKAN")),
                 "agama": bersih(g("AGAMA")),
                 "status": bersih(g("STATUS")),
-                "sk_pengangkatan": bersih(g("NOMOR SK")),
-                "sk_terakhir": tgl["TMT/SK TERAKHIR"].isoformat() if tgl["TMT/SK TERAKHIR"] else None,
+                "sk_pengangkatan": bersih(g("NOMOR SK PENGANGKATAN")),
+                "tmt": tgl["TMT PENGANGKATAN"].isoformat() if tgl["TMT PENGANGKATAN"] else None,
+                "sk_terakhir": bersih(g("SK JABATAN TERAKHIR")),
                 "pensiun": pensiun,
                 "pensiun_status": sp,
                 "ultah_hari": lahir.day if ultah else None,
                 "ultah_usia": HARI_INI.year - lahir.year if ultah else None,
                 "telepon": telp,
-                "sanksi": sanksi,
-                "kinerja": bersih(g("KINERJA")),
+                "kinerja": kinerja or None,          # daftar isian; rinciannya ditampilkan
+                "pembinaan": len(pembinaan) or None,  # hanya jumlah; rincian tidak diterbitkan
                 "foto": path_foto,
                 "lowong": False,
             })
@@ -428,7 +447,7 @@ def main():
     ada_logo = (ROOT / "logo.png").exists()
     situs = alamat_situs()
     gambar = situs + "logo.png" if (situs and ada_logo) else None
-    judul = f"Perangkat Desa Kecamatan {CFG['kecamatan']}"
+    judul = f"Profil Perangkat Desa Kecamatan {CFG['kecamatan']}"
     (DIST / "index.html").write_text(
         halaman(tpl, "./", judul, f"Kepala desa dan perangkat desa se-Kecamatan {CFG['kecamatan']}, {CFG['instansi']}.", gambar),
         encoding="utf-8")

@@ -81,6 +81,32 @@ dl{margin:.9rem 0 0;display:grid;grid-template-columns:auto 1fr;gap:.3rem .9rem;
 dt{color:var(--muted)} dd{margin:0;overflow-wrap:anywhere}
 .acts{display:flex;justify-content:flex-end;gap:.5rem;padding:0 1.5rem 1.25rem}
 .acts button{padding:.45rem 1.1rem;border:1px solid var(--line);border-radius:8px;background:none}
+.dash{display:grid;grid-template-columns:1.15fr 1fr;gap:.9rem;margin-bottom:2rem}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:1rem 1.15rem}
+.panel h3{font:600 .8rem var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 .85rem}
+.bar{display:grid;grid-template-columns:7.2rem 1fr 2rem;gap:.6rem;align-items:center;font-size:.88rem;margin:.4rem 0}
+.bar .bt{height:.55rem;background:var(--mint);border-radius:99px;overflow:hidden}
+.bar .bt i{display:block;height:100%;background:var(--green);border-radius:99px}
+.bar b{text-align:right;font-variant-numeric:tabular-nums}
+.kolom{display:flex;gap:.9rem;align-items:flex-end;height:9rem}
+.kol{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;font-size:.85rem}
+.kol b{font-variant-numeric:tabular-nums;margin-bottom:.25rem}
+.kol .kt{display:flex;align-items:flex-end;width:100%;flex:1;max-height:6rem;background:linear-gradient(var(--line),var(--line)) center bottom/1px 100% no-repeat}
+.kol .kt i{display:block;width:100%;background:var(--green);border-radius:4px 4px 0 0;opacity:.9}
+.kol em{font-style:normal;color:var(--muted);margin-top:.35rem;font-size:.8rem}
+.cat{margin:.8rem 0 0;font-size:.78rem;color:var(--muted)}
+.info{margin-top:2.25rem;padding-top:1.25rem;border-top:1px solid var(--line)}
+.info h2{font-size:1.05rem;color:var(--muted)}
+ul.ultah{list-style:none;margin:0;padding:0;columns:2 19rem;column-gap:2rem;font-size:.9rem}
+ul.ultah li{break-inside:avoid;display:grid;grid-template-columns:auto 1fr;gap:.1rem .7rem;padding:.35rem 0;align-items:baseline}
+.hr{grid-row:span 2;min-width:2.2rem;text-align:center;font:600 .9rem var(--serif);color:var(--green);background:var(--mint);border-radius:6px;padding:.15rem .3rem}
+.lk{background:none;border:0;padding:0;text-align:left;text-transform:uppercase;font-weight:600;font-size:.85rem}
+.lk:hover{color:var(--green);text-decoration:underline}
+.ket{color:var(--muted);font-size:.8rem;text-transform:capitalize}
+.ket .st{text-transform:none;font-style:italic}
+.pens{font-size:.82rem;color:var(--muted);margin:.5rem 0 0}
+.stats small{display:block;font-size:.78rem;color:var(--muted)}
+@media (max-width:40rem){.dash{grid-template-columns:1fr}.bar{grid-template-columns:6rem 1fr 2rem}}
 footer{padding:0 0 2rem;color:var(--muted);font-size:.85rem}
 @media (max-width:40rem){.dlg{grid-template-columns:1fr}.stats{gap:1.75rem}}
 </style>
@@ -114,12 +140,22 @@ const el = (tag, props = {}, ...kids) => {
 };
 const tgl = (iso) => iso ? new Date(iso + "T00:00:00").toLocaleDateString("id-ID", {day: "numeric", month: "long", year: "numeric"}) : null;
 const inisial = (n) => n.split(/\s+/).filter(Boolean).slice(0, 2).map(s => s[0]).join("").toUpperCase();
-const ORDE = ["Sekretaris Desa", "Kasi", "Kaur", "Kepala Dusun", "Lainnya"];
+const ORDE = ["Sekretaris Desa", "Kasi", "Kaur", "Kepala Dusun", "Staf"];
+const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+const tglPendek = (iso) => new Date(iso + "T00:00:00").toLocaleDateString("id-ID", {day: "numeric", month: "short"});
 
 let DATA, query = "";
+const aktif = (p) => !p.lowong && p.pensiun_status !== "lewat";
+const terlihat = (p) => p.lowong || aktif(p);
 const kades = (d) => d.perangkat.find(p => p.kelompok === "Kepala Desa");
-const staf = (d) => d.perangkat.filter(p => p.kelompok !== "Kepala Desa");
-const terisi = (d) => staf(d).filter(p => !p.lowong).length;
+const anggota = (d) => d.perangkat.filter(p => p.kelompok !== "Kepala Desa");
+const hitung = (d) => {
+  const a = anggota(d).filter(aktif);
+  const staf = a.filter(p => p.kelompok === "Staf").length;
+  return {perangkat: a.length - staf, staf};
+};
+const semuaAktif = () => DATA.desa.flatMap(d => d.perangkat.filter(aktif).map(p => [p, d]));
+const ketHitung = (h) => h.perangkat + " perangkat desa" + (h.staf ? " & " + h.staf + " staf perangkat" : "");
 
 function avatar() {
   const NS = "http://www.w3.org/2000/svg";
@@ -160,8 +196,7 @@ function profil(p, d) {
   const nomor = (p.telepon || "").replace(/[^\d+]/g, "");
   dl.append(el("dt", {text: "Telepon"}), el("dd", {}, nomor ? el("a", {href: "tel:" + nomor, text: p.telepon}) : "-"));
   const lencana = [];
-  if (p.pensiun_status === "mendekati") lencana.push(el("span", {class: "badge", text: "Pensiun " + tgl(p.pensiun)}));
-  if (p.pensiun_status === "lewat") lencana.push(el("span", {class: "badge", text: "Melewati batas pensiun"}));
+  if (p.pensiun_status) lencana.push(el("span", {class: "badge", text: "Pensiun " + tgl(p.pensiun)}));
   if (p.kinerja) lencana.push(el("span", {class: "badge ok", text: p.kinerja}));
   const dlg = $("dlg");
   const lihat = location.hash !== "#/desa/" + d.slug
@@ -191,7 +226,59 @@ function kartuDesa(d) {
     el("div", {},
       el("div", {class: "dn", text: d.nama}),
       el("div", {class: "kd", text: k && !k.lowong ? k.nama : "Kepala desa belum terisi"}),
-      el("div", {class: "jm", text: terisi(d) + " perangkat desa"})));
+      el("div", {class: "jm", text: ketHitung(hitung(d))})));
+}
+
+/* ---------- dasbor ---------- */
+function panel(judul, isi, catatan) {
+  return el("section", {class: "panel"}, el("h3", {text: judul}), isi, catatan ? el("p", {class: "cat", text: catatan}) : null);
+}
+
+function dasbor() {
+  const orang = semuaAktif();
+  const baris = ["Kepala Desa", ...ORDE].map(g => [g, orang.filter(([p]) => p.kelompok === g).length]);
+  const mx = Math.max(...baris.map(b => b[1]), 1);
+  const struktur = el("div", {}, baris.map(([g, n]) => el("div", {class: "bar"},
+    el("span", {text: g}), el("span", {class: "bt"}, el("i", {style: `width:${n / mx * 100}%`})), el("b", {text: String(n)}))));
+
+  const usia = orang.map(([p]) => p.usia).filter(u => u != null);
+  const pita = [["< 30", 0, 29], ["30–39", 30, 39], ["40–49", 40, 49], ["50+", 50, 200]]
+    .map(([l, a, b]) => [l, usia.filter(u => u >= a && u <= b).length]);
+  const mu = Math.max(...pita.map(x => x[1]), 1);
+  const sebaran = el("div", {class: "kolom"}, pita.map(([l, n]) => el("div", {class: "kol"},
+    el("b", {text: String(n)}), el("span", {class: "kt"}, el("i", {style: `height:${n / mu * 100}%`})), el("em", {text: l}))));
+
+  return el("div", {class: "dash"},
+    panel("Jumlah per struktur", struktur),
+    panel("Sebaran usia", sebaran, `Dari ${usia.length} orang yang tanggal lahirnya tercatat.`));
+}
+
+/* ---------- info bawah ---------- */
+function ulangTahun() {
+  const l = semuaAktif().filter(([p]) => p.ultah_hari)
+    .sort((a, b) => a[0].ultah_hari - b[0].ultah_hari || a[0].nama.localeCompare(b[0].nama));
+  if (!l.length) return null;
+  return el("section", {class: "info"},
+    el("h2", {}, "Ulang tahun bulan " + BULAN[DATA.bulan - 1] + " ", el("small", {text: "(" + l.length + ")"})),
+    el("ul", {class: "ultah"}, l.map(([p, d]) => el("li", {},
+      el("span", {class: "hr", text: String(p.ultah_hari)}),
+      el("button", {class: "lk", text: p.nama, onclick: () => profil(p, d)}),
+      el("span", {class: "ket", text: `${p.jabatan.toLowerCase()} · Desa ${d.nama} · ${p.ultah_usia} th`})))));
+}
+
+function pensiunTahunIni() {
+  const th = String(DATA.tahun);
+  const l = DATA.desa.flatMap(d => d.perangkat.filter(p => p.pensiun && p.pensiun.startsWith(th)).map(p => [p, d]))
+    .sort((a, b) => a[0].pensiun.localeCompare(b[0].pensiun));
+  if (!l.length) return null;
+  return el("section", {class: "info"},
+    el("h2", {}, "Pensiun tahun " + th + " ", el("small", {text: "(" + l.length + ")"})),
+    el("ul", {class: "ultah"}, l.map(([p, d]) => el("li", {},
+      el("span", {class: "hr", style: "font-size:.78rem", text: tglPendek(p.pensiun)}),
+      el("button", {class: "lk", text: p.nama, onclick: () => profil(p, d)}),
+      el("span", {class: "ket"}, `${p.jabatan.toLowerCase()} · Desa ${d.nama} · `,
+        el("span", {class: "st", text: p.pensiun_status === "lewat" ? "sudah pensiun" : "akan pensiun"}))))),
+    el("p", {class: "pens", text: "Yang sudah pensiun tidak lagi dihitung dalam jumlah perangkat desa dan tidak tampil di daftar desa."}));
 }
 
 function beranda() {
@@ -203,26 +290,29 @@ function beranda() {
   });
   const bagian = [cari];
   if (!q) {
-    bagian.push(el("h2", {}, "Desa ", el("small", {text: "(" + DATA.desa.length + ")"})), el("div", {class: "grid"}, DATA.desa.map(kartuDesa)));
+    bagian.push(dasbor(),
+      el("h2", {}, "Desa ", el("small", {text: "(" + DATA.desa.length + ")"})),
+      el("div", {class: "grid"}, DATA.desa.map(kartuDesa)),
+      ulangTahun(), pensiunTahunIni());
   } else {
     const desa = DATA.desa.filter(d => d.nama.toLowerCase().includes(q));
-    const orang = [];
-    for (const d of DATA.desa) for (const p of d.perangkat)
-      if (!p.lowong && ((p.nama + " " + p.jabatan).toLowerCase().includes(q))) orang.push([p, d]);
+    const orang = semuaAktif().filter(([p]) => (p.nama + " " + p.jabatan).toLowerCase().includes(q));
     if (desa.length) bagian.push(el("h2", {}, "Desa ", el("small", {text: "(" + desa.length + ")"})), el("div", {class: "grid", style: "margin-bottom:1.5rem"}, desa.map(kartuDesa)));
     if (orang.length) bagian.push(el("h2", {}, "Orang ", el("small", {text: "(" + orang.length + ")"})), el("ul", {class: "list"}, orang.map(([p, d]) => barisOrang(p, d, true))));
     if (!desa.length && !orang.length) bagian.push(el("p", {class: "kosong", text: "Tidak ada yang cocok. Coba nama desa, nama orang, atau jabatan lain."}));
   }
-  $("isi").replaceChildren(...bagian);
+  $("isi").replaceChildren(...bagian.filter(Boolean));
 }
 
 function halamanDesa(d) {
   const k = kades(d);
-  const lst = staf(d);
   const per = {};
-  for (const p of lst) (per[p.kelompok] ||= []).push(p);
+  for (const p of anggota(d).filter(terlihat)) (per[p.kelompok] ||= []).push(p);
   const urut = ORDE.filter(g => per[g]);
-  const komposisi = urut.map(g => el("span", {text: g + " " + per[g].filter(p => !p.lowong).length}));
+  const jml = (g) => per[g].filter(aktif).length;
+  const komposisi = urut.map(g => el("span", {text: g + " " + jml(g)}));
+  const h = hitung(d);
+  const pens = d.perangkat.filter(p => p.pensiun_status === "lewat");
   $("isi").replaceChildren(
     el("button", {class: "back", text: "‹ Semua desa", onclick: () => { location.hash = "#/"; }}),
     el("h2", {text: "Desa " + d.nama, style: "font-size:1.9rem"}),
@@ -231,11 +321,12 @@ function halamanDesa(d) {
       : el("button", {class: "kades", "aria-label": "Profil " + k.nama, onclick: () => profil(k, d)}, pic(k),
           el("div", {}, el("div", {class: "lbl", text: k.jabatan}), el("div", {class: "nama", text: k.nama}), el("div", {class: "jab", text: k.usia != null ? k.usia + " tahun" : ""}))))
       : null,
-    el("h2", {}, "Perangkat desa ", el("small", {text: "(" + terisi(d) + ")"})),
+    el("h2", {}, "Perangkat desa ", el("small", {text: "(" + h.perangkat + (h.staf ? " & " + h.staf + " staf perangkat" : "") + ")"})),
     el("div", {class: "komp"}, komposisi),
     ...urut.map(g => el("section", {class: "grp"},
-      el("h2", {style: "font-size:1.1rem"}, g, " ", el("small", {text: "(" + per[g].filter(p => !p.lowong).length + ")"})),
-      el("ul", {class: "list"}, per[g].map(p => barisOrang(p, d, false))))));
+      el("h2", {style: "font-size:1.1rem"}, g, " ", el("small", {text: "(" + jml(g) + ")"})),
+      el("ul", {class: "list"}, per[g].map(p => barisOrang(p, d, false))))),
+    pens.length ? el("p", {class: "pens", text: "Pensiun: " + pens.map(p => `${p.nama} (${tgl(p.pensiun)})`).join("; ") + ". Tidak dihitung dalam jumlah di atas."}) : null);
 }
 
 function rute() {
@@ -254,9 +345,11 @@ function pasang(d) {
   $("sub").textContent = "";
   const lg = $("logo");
   if (lg) { const ic = document.createElement("link"); ic.rel = "icon"; ic.href = "logo.png"; document.head.append(ic); }
-  const jml = d.desa.reduce((n, x) => n + terisi(x), 0);
-  $("stats").replaceChildren(...[[d.desa.length, "desa"], [jml, "perangkat desa"]]
-    .map(([n, t]) => el("div", {}, el("b", {text: String(n)}), el("span", {text: t}))));
+  const tot = d.desa.reduce((a, x) => { const h = hitung(x); return {perangkat: a.perangkat + h.perangkat, staf: a.staf + h.staf}; }, {perangkat: 0, staf: 0});
+  $("stats").replaceChildren(
+    el("div", {}, el("b", {text: String(d.desa.length)}), el("span", {text: "desa"})),
+    el("div", {}, el("b", {text: String(tot.perangkat)}), el("span", {text: "perangkat desa"}),
+      tot.staf ? el("small", {text: "& " + tot.staf + " staf perangkat"}) : null));
   $("foot").textContent = "Data per " + tgl(d.data_per || d.diperbarui);
   window.addEventListener("hashchange", rute);
   rute();

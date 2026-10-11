@@ -141,7 +141,7 @@ def kelompok(jabatan):
     if "DUSUN" in j: return "Kepala Dusun"
     if j.startswith("KASI"): return "Kasi"
     if j.startswith("KAUR"): return "Kaur"
-    return "Lainnya"
+    return "Staf"
 
 
 # ---------- foto ----------
@@ -266,10 +266,13 @@ def proses():
 
             sanksi = bersih(g("SANKSI"))
             pensiun = sp = None
-            if lahir is not None:
+            if lahir is not None and kelompok(jabatan) != "Kepala Desa":  # aturan usia berlaku bagi perangkat, bukan kades
                 sp = status_pensiun(tanggal_pensiun(lahir))
                 if sp:  # tanggal hanya diterbitkan bila perlu lencana
                     pensiun = tanggal_pensiun(lahir).isoformat()
+            if sp == "lewat" and int(pensiun[:4]) < HARI_INI.year:
+                info(lok, f"{nama}: pensiun sejak {pensiun}, tidak dihitung lagi. Biarkan barisnya sampai akhir periode agar tercatat")
+            ultah = lahir is not None and lahir.month == HARI_INI.month and sp != "lewat"
             telp = g("TELEPON")
             if isinstance(telp, (int, float)):
                 telp = str(int(telp))
@@ -289,6 +292,8 @@ def proses():
                 "sk_terakhir": tgl["TMT/SK TERAKHIR"].isoformat() if tgl["TMT/SK TERAKHIR"] else None,
                 "pensiun": pensiun,
                 "pensiun_status": sp,
+                "ultah_hari": lahir.day if ultah else None,
+                "ultah_usia": HARI_INI.year - lahir.year if ultah else None,
                 "telepon": telp,
                 "sanksi": sanksi,
                 "kinerja": bersih(g("KINERJA")),
@@ -325,15 +330,19 @@ def tanggal_data():
 
 
 def ringkas(desa):
-    """Kepala desa dihitung terpisah dari perangkat desa."""
-    semua = [p for d in desa for p in d["perangkat"] if not p["lowong"]]
-    kades = [p for p in semua if p["kelompok"] == "Kepala Desa"]
+    """Yang sudah melewati tanggal pensiun tidak dihitung. Kades dan staf dipisahkan dari perangkat."""
+    semua = [p for d in desa for p in d["perangkat"]]
+    aktif = [p for p in semua if not p["lowong"] and p.get("pensiun_status") != "lewat"]
+    kades = [p for p in aktif if p["kelompok"] == "Kepala Desa"]
+    staf = [p for p in aktif if p["kelompok"] == "Staf"]
     return {
         "desa": len(desa),
         "kades": len(kades),
-        "perangkat": len(semua) - len(kades),
-        "lowong": sum(1 for d in desa for p in d["perangkat"] if p["lowong"]),
-        "foto": sum(1 for p in semua if p["foto"]),
+        "perangkat": len(aktif) - len(kades) - len(staf),
+        "staf": len(staf),
+        "lowong": sum(1 for p in semua if p["lowong"]),
+        "pensiun_tahun_ini": sum(1 for p in semua if (p.get("pensiun") or "").startswith(str(HARI_INI.year))),
+        "foto": sum(1 for p in aktif if p["foto"]),
     }
 
 
@@ -371,6 +380,8 @@ def main():
         "kecamatan": CFG["kecamatan"],
         "diperbarui": HARI_INI.isoformat(),
         "data_per": tanggal_data().isoformat(),
+        "tahun": HARI_INI.year,
+        "bulan": HARI_INI.month,
         "ringkasan": ringkas(desa),
         "desa": desa,
     }
@@ -383,7 +394,7 @@ def main():
     else:
         print("INFO: logo.png belum ada, header tampil tanpa lambang")
     r = data["ringkasan"]
-    print(f"\nSelesai: {r['desa']} desa, {r['kades']} kades, {r['perangkat']} perangkat, "
+    print(f"\nSelesai: {r['desa']} desa, {r['kades']} kades, {r['perangkat']} perangkat, {r['staf']} staf, "
           f"{r['foto']} berfoto, {r['lowong']} lowong, "
           f"{sum(1 for t in temuan if t[0]=='WARNING')} peringatan.")
 

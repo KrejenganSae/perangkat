@@ -7,6 +7,8 @@ Yang TIDAK masuk: data/perangkat.xlsx, tanggal lahir, telepon.
 Kode keluar 1 bila ada ERROR (deploy dibatalkan). WARNING hanya dilaporkan.
 Jalankan lokal:  python build.py
 """
+import collections
+import html
 import json
 import os
 import re
@@ -135,13 +137,15 @@ def pendidikan_baku(v):
 
 
 def kelompok(jabatan):
-    j = (jabatan or "").upper()
-    if "KEPALA DESA" in j and "DUSUN" not in j: return "Kepala Desa"
-    if "SEKRETARIS" in j: return "Sekretaris Desa"
+    """Kelompok struktur. Jabatan umum/tak dikenal (mis. 'PERANGKAT DESA') masuk 'Perangkat Desa' sampai dirinci."""
+    j = (jabatan or "").upper().strip()
+    if re.search(r"\b(KEPALA DESA|KADES)\b", j) and "DUSUN" not in j: return "Kepala Desa"
+    if "SEKRETARIS" in j or j.startswith("SEKDES"): return "Sekretaris Desa"
     if "DUSUN" in j: return "Kepala Dusun"
-    if j.startswith("KASI"): return "Kasi"
-    if j.startswith("KAUR"): return "Kaur"
-    return "Staf"
+    if re.match(r"(KASI|KEPALA SEKSI)\b", j): return "Kasi"
+    if re.match(r"(KAUR|KEPALA URUSAN)\b", j): return "Kaur"
+    if j.startswith("STAF"): return "Staf"
+    return "Perangkat Desa"
 
 
 # ---------- foto ----------
@@ -202,6 +206,8 @@ def proses():
         dk = kunci(desa)
         foto_desa = foto.get(dk, {})
         slug_desa = slug(desa)
+        if slug_desa in RESERVED:
+            error(desa, f"Nama desa menghasilkan alamat '{slug_desa}' yang bentrok dengan berkas situs")
 
         for n, r in enumerate(baris, start=2):
             if not any(c not in (None, "") for c in r):
@@ -306,6 +312,11 @@ def proses():
             if k != "_folder" and (dk, k) not in foto_terpakai:
                 warning(f"data/foto/{foto_desa['_folder']}", f"{f.name} tidak cocok dengan nama mana pun di Excel")
 
+        cnt = collections.Counter(p["kelompok"] for p in orang)
+        if cnt["Perangkat Desa"]:
+            info(desa, f"{cnt['Perangkat Desa']} orang berjabatan umum (mis. 'PERANGKAT DESA'), ditempatkan di kelompok Perangkat Desa sampai jabatannya dirinci")
+        if cnt["Perangkat Desa"] < 3 and (cnt["Sekretaris Desa"] < 1 or cnt["Kasi"] < 3 or cnt["Kaur"] < 3):
+            info(desa, f"Struktur belum lengkap: Sekretaris {cnt['Sekretaris Desa']}/1, Kasi {cnt['Kasi']}/3, Kaur {cnt['Kaur']}/3 (baris belum ada di Excel atau jabatannya berbeda)")
         hasil.append({"nama": desa, "slug": slug_desa, "perangkat": orang})
 
     # folder foto tanpa sheet
@@ -344,6 +355,32 @@ def ringkas(desa):
         "pensiun_tahun_ini": sum(1 for p in semua if (p.get("pensiun") or "").startswith(str(HARI_INI.year))),
         "foto": sum(1 for p in aktif if p["foto"]),
     }
+
+
+RESERVED = {"foto", "data", "logo", "index", "404"}
+
+
+def halaman(tpl, base, judul, deskripsi, gambar):
+    """Salinan index.html untuk satu alamat: atur basis jalur, judul, dan pratinjau tautan (WhatsApp dll)."""
+    q = lambda t: html.escape(t, quote=True)
+    h = tpl.replace('<meta name="base" content="./">', f'<meta name="base" content="{base}">', 1)
+    h = re.sub(r"<title>.*?</title>", lambda _: f"<title>{q(judul)}</title>", h, count=1)
+    og = (f'<meta property="og:type" content="website">\n<meta property="og:title" content="{q(judul)}">\n'
+          f'<meta property="og:description" content="{q(deskripsi)}">\n')
+    if gambar:
+        og += f'<meta property="og:image" content="{q(gambar)}">\n'
+    return h.replace("</head>", og + "</head>", 1)
+
+
+def alamat_situs():
+    """Alamat dasar situs untuk og:image: config 'url', atau diturunkan dari GITHUB_REPOSITORY."""
+    if CFG.get("url"):
+        return CFG["url"].rstrip("/") + "/"
+    repo = os.environ.get("GITHUB_REPOSITORY", "")
+    if "/" in repo:
+        pemilik, nama = repo.split("/", 1)
+        return f"https://{pemilik}.github.io/{nama}/"
+    return None
 
 
 def laporkan():
@@ -387,7 +424,20 @@ def main():
     }
     (DIST / "data.json").write_text(
         json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    shutil.copyfile(ROOT / "index.html", DIST / "index.html")
+    tpl = (ROOT / "index.html").read_text(encoding="utf-8")
+    ada_logo = (ROOT / "logo.png").exists()
+    situs = alamat_situs()
+    gambar = situs + "logo.png" if (situs and ada_logo) else None
+    judul = f"Perangkat Desa Kecamatan {CFG['kecamatan']}"
+    (DIST / "index.html").write_text(
+        halaman(tpl, "./", judul, f"Kepala desa dan perangkat desa se-Kecamatan {CFG['kecamatan']}, {CFG['instansi']}.", gambar),
+        encoding="utf-8")
+    for d in desa:  # alamat bersih: /<desa>/
+        (DIST / d["slug"]).mkdir(exist_ok=True)
+        (DIST / d["slug"] / "index.html").write_text(
+            halaman(tpl, "../", f"Desa {d['nama']} - {judul}",
+                    f"Kepala desa dan perangkat Desa {d['nama']}, Kecamatan {CFG['kecamatan']}.", gambar),
+            encoding="utf-8")
     (DIST / ".nojekyll").write_text("")
     if (ROOT / "logo.png").exists():
         shutil.copyfile(ROOT / "logo.png", DIST / "logo.png")

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Perangkat Desa</title>
+<meta name="base" content="./">
 <style>
 :root{
   --paper:#fcfbf8; --panel:#ffffff; --ink:#1b2421; --muted:#5d6864; --line:#dcdad2;
@@ -25,12 +26,13 @@ header{position:relative;text-align:center;padding:2.25rem 0 1.75rem;border-top:
   background:
     radial-gradient(circle at 1px 1px,color-mix(in srgb,var(--green) 14%,transparent) 1px,transparent 0) 0 0/22px 22px,
     linear-gradient(180deg,var(--mint),var(--paper))}
-#logo{display:block;height:5rem;width:auto;margin:0 auto .9rem}
+#logo{display:block;height:5rem;width:auto;margin:0 auto .7rem}
 h1{font:600 clamp(1.7rem,4vw,2.6rem)/1.1 var(--serif);margin:0 0 .35rem;letter-spacing:-.01em}
 .sub{color:var(--muted);margin:0}
 .sub:empty{display:none}
+#instansi{font-size:1.02rem;letter-spacing:.03em;color:var(--ink);margin-bottom:.55rem}
 .stats{display:flex;justify-content:center;gap:1rem;margin-top:1.4rem;flex-wrap:wrap}
-.stats div{min-width:9rem;padding:.7rem 1.4rem;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.stats div{min-width:8.5rem;padding:.7rem 1.4rem;background:var(--panel);border:1px solid var(--line);border-radius:10px}
 .stats b{display:block;font:600 2rem/1.1 var(--serif);color:var(--green)}
 .stats span{font-size:.88rem;color:var(--muted)}
 main{padding:1.5rem 0 4rem}
@@ -84,7 +86,7 @@ dt{color:var(--muted)} dd{margin:0;overflow-wrap:anywhere}
 .dash{display:grid;grid-template-columns:1.15fr 1fr;gap:.9rem;margin-bottom:2rem}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:1rem 1.15rem}
 .panel h3{font:600 .8rem var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 .85rem}
-.bar{display:grid;grid-template-columns:7.2rem 1fr 2rem;gap:.6rem;align-items:center;font-size:.88rem;margin:.4rem 0}
+.bar{display:grid;grid-template-columns:10.2rem 1fr 2rem;gap:.6rem;align-items:center;font-size:.88rem;margin:.4rem 0}
 .bar .bt{height:.55rem;background:var(--mint);border-radius:99px;overflow:hidden}
 .bar .bt i{display:block;height:100%;background:var(--green);border-radius:99px}
 .bar b{text-align:right;font-variant-numeric:tabular-nums}
@@ -106,16 +108,16 @@ ul.ultah li{break-inside:avoid;display:grid;grid-template-columns:auto 1fr;gap:.
 .ket .st{text-transform:none;font-style:italic}
 .pens{font-size:.82rem;color:var(--muted);margin:.5rem 0 0}
 .stats small{display:block;font-size:.78rem;color:var(--muted)}
-@media (max-width:40rem){.dash{grid-template-columns:1fr}.bar{grid-template-columns:6rem 1fr 2rem}}
+@media (max-width:40rem){.dash{grid-template-columns:1fr}.bar{grid-template-columns:6.8rem 1fr 2rem}}
 footer{padding:0 0 2rem;color:var(--muted);font-size:.85rem}
 @media (max-width:40rem){.dlg{grid-template-columns:1fr}.stats{gap:1.75rem}}
 </style>
 </head>
 <body>
 <header><div class="wrap">
-  <img id="logo" src="logo.png" alt="Lambang Pemerintah Kabupaten Probolinggo" onerror="this.remove()">
-  <h1 id="judul">Perangkat Desa</h1>
+  <img id="logo" alt="Lambang Pemerintah Kabupaten Probolinggo" onerror="this.remove()">
   <p class="sub" id="instansi"></p>
+  <h1 id="judul">Perangkat Desa</h1>
   <p class="sub" id="sub">Memuat data…</p>
   <div class="stats" id="stats"></div>
 </div></header>
@@ -140,13 +142,22 @@ const el = (tag, props = {}, ...kids) => {
 };
 const tgl = (iso) => iso ? new Date(iso + "T00:00:00").toLocaleDateString("id-ID", {day: "numeric", month: "long", year: "numeric"}) : null;
 const inisial = (n) => n.split(/\s+/).filter(Boolean).slice(0, 2).map(s => s[0]).join("").toUpperCase();
-const ORDE = ["Sekretaris Desa", "Kasi", "Kaur", "Kepala Dusun", "Staf"];
+const ORDE = ["Sekretaris Desa", "Kasi", "Kaur", "Kepala Dusun", "Perangkat Desa", "Staf"];
+const JUDUL = {Kasi: "Kepala Seksi", Kaur: "Kepala Urusan", Staf: "Staf Perangkat Desa"};
+const judul = (g) => JUDUL[g] || g;
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 const tglPendek = (iso) => new Date(iso + "T00:00:00").toLocaleDateString("id-ID", {day: "numeric", month: "short"});
 
+const BASE = new URL((document.querySelector('meta[name="base"]') || {}).content || "./", location.href).href;
+const slugSekarang = () => decodeURIComponent(location.pathname.slice(new URL(BASE).pathname.length).split("/")[0] || "");
+function go(slug) { history.pushState({}, "", BASE + (slug ? slug + "/" : "")); rute(); }
+
 let DATA, query = "";
 const aktif = (p) => !p.lowong && p.pensiun_status !== "lewat";
-const terlihat = (p) => p.lowong || aktif(p);
+// Kepala Dusun bernomor romawi (Krajan I, II, ...) tidak dipertahankan bila pensiun; jabatan lain tetap tampil sebagai lowong
+const romawi = (p) => p.kelompok === "Kepala Dusun" && /\s(?:I{1,3}|IV|VI{0,3}|IX|X)$/i.test((p.jabatan || "").trim());
+const terlihat = (p) => p.lowong || aktif(p) || (p.pensiun_status === "lewat" && !romawi(p));
+const sebagaiLowong = (p) => (p.lowong || aktif(p)) ? p : {...p, nama: null, lowong: true, foto: null, usia: null};
 const kades = (d) => d.perangkat.find(p => p.kelompok === "Kepala Desa");
 const anggota = (d) => d.perangkat.filter(p => p.kelompok !== "Kepala Desa");
 const hitung = (d) => {
@@ -173,7 +184,7 @@ function pic(p) {
   const d = el("div", {class: "pic"});
   if (p && p.lowong) { d.classList.add("kosong-foto"); d.textContent = "–"; return d; }
   if (p && p.foto) {
-    const img = el("img", {src: p.foto, alt: "Foto " + p.nama, loading: "lazy"});
+    const img = el("img", {src: BASE + p.foto, alt: "Foto " + p.nama, loading: "lazy"});
     img.addEventListener("error", () => img.replaceWith(avatar()));
     d.append(img);
   } else d.append(avatar());
@@ -199,8 +210,8 @@ function profil(p, d) {
   if (p.pensiun_status) lencana.push(el("span", {class: "badge", text: "Pensiun " + tgl(p.pensiun)}));
   if (p.kinerja) lencana.push(el("span", {class: "badge ok", text: p.kinerja}));
   const dlg = $("dlg");
-  const lihat = location.hash !== "#/desa/" + d.slug
-    ? el("button", {text: "Lihat desa", onclick: () => { dlg.close(); location.hash = "#/desa/" + d.slug; }}) : null;
+  const lihat = slugSekarang() !== d.slug
+    ? el("button", {text: "Lihat desa", onclick: () => { dlg.close(); go(d.slug); }}) : null;
   dlg.replaceChildren(
     el("div", {class: "dlg"}, pic(p), el("div", {},
       el("h3", {text: p.nama}), el("div", {class: "jab", text: p.jabatan}),
@@ -221,7 +232,7 @@ function barisOrang(p, d, tampilDesa) {
 
 function kartuDesa(d) {
   const k = kades(d);
-  return el("button", {class: "kartu", onclick: () => { location.hash = "#/desa/" + d.slug; }},
+  return el("button", {class: "kartu", onclick: () => go(d.slug)},
     pic(k),
     el("div", {},
       el("div", {class: "dn", text: d.nama}),
@@ -236,7 +247,7 @@ function panel(judul, isi, catatan) {
 
 function dasbor() {
   const orang = semuaAktif();
-  const baris = ["Kepala Desa", ...ORDE].map(g => [g, orang.filter(([p]) => p.kelompok === g).length]);
+  const baris = ["Kepala Desa", ...ORDE].map(g => [g === "Perangkat Desa" ? "Belum dirinci" : judul(g), orang.filter(([p]) => p.kelompok === g).length]);
   const mx = Math.max(...baris.map(b => b[1]), 1);
   const struktur = el("div", {}, baris.map(([g, n]) => el("div", {class: "bar"},
     el("span", {text: g}), el("span", {class: "bt"}, el("i", {style: `width:${n / mx * 100}%`})), el("b", {text: String(n)}))));
@@ -272,13 +283,12 @@ function pensiunTahunIni() {
     .sort((a, b) => a[0].pensiun.localeCompare(b[0].pensiun));
   if (!l.length) return null;
   return el("section", {class: "info"},
-    el("h2", {}, "Pensiun tahun " + th + " ", el("small", {text: "(" + l.length + ")"})),
+    el("h2", {}, "Daftar Pensiun tahun " + th + " ", el("small", {text: "(" + l.length + ")"})),
     el("ul", {class: "ultah"}, l.map(([p, d]) => el("li", {},
       el("span", {class: "hr", style: "font-size:.78rem", text: tglPendek(p.pensiun)}),
       el("button", {class: "lk", text: p.nama, onclick: () => profil(p, d)}),
       el("span", {class: "ket"}, `${p.jabatan.toLowerCase()} · Desa ${d.nama} · `,
-        el("span", {class: "st", text: p.pensiun_status === "lewat" ? "sudah pensiun" : "akan pensiun"}))))),
-    el("p", {class: "pens", text: "Yang sudah pensiun tidak lagi dihitung dalam jumlah perangkat desa dan tidak tampil di daftar desa."}));
+        el("span", {class: "st", text: p.pensiun_status === "lewat" ? "sudah pensiun" : "akan pensiun"}))))));
 }
 
 function beranda() {
@@ -307,14 +317,14 @@ function beranda() {
 function halamanDesa(d) {
   const k = kades(d);
   const per = {};
-  for (const p of anggota(d).filter(terlihat)) (per[p.kelompok] ||= []).push(p);
+  for (const p of anggota(d).filter(terlihat).map(sebagaiLowong)) (per[p.kelompok] ||= []).push(p);
   const urut = ORDE.filter(g => per[g]);
   const jml = (g) => per[g].filter(aktif).length;
-  const komposisi = urut.map(g => el("span", {text: g + " " + jml(g)}));
+  const komposisi = urut.map(g => el("span", {text: judul(g) + " " + jml(g)}));
   const h = hitung(d);
   const pens = d.perangkat.filter(p => p.pensiun_status === "lewat");
   $("isi").replaceChildren(
-    el("button", {class: "back", text: "‹ Semua desa", onclick: () => { location.hash = "#/"; }}),
+    el("button", {class: "back", text: "‹ Semua desa", onclick: () => go("")}),
     el("h2", {text: "Desa " + d.nama, style: "font-size:1.9rem"}),
     k ? (k.lowong
       ? el("div", {class: "kades"}, pic(k), el("div", {}, el("div", {class: "lbl", text: "Kepala Desa"}), el("div", {class: "nama", style: "font-weight:400;font-style:italic;color:var(--muted)", text: "Belum terisi"})))
@@ -324,15 +334,18 @@ function halamanDesa(d) {
     el("h2", {}, "Perangkat desa ", el("small", {text: "(" + h.perangkat + (h.staf ? " & " + h.staf + " staf perangkat" : "") + ")"})),
     el("div", {class: "komp"}, komposisi),
     ...urut.map(g => el("section", {class: "grp"},
-      el("h2", {style: "font-size:1.1rem"}, g, " ", el("small", {text: "(" + jml(g) + ")"})),
+      el("h2", {style: "font-size:1.1rem"}, judul(g), " ", el("small", {text: "(" + jml(g) + ")"})),
       el("ul", {class: "list"}, per[g].map(p => barisOrang(p, d, false))))),
-    pens.length ? el("p", {class: "pens", text: "Pensiun: " + pens.map(p => `${p.nama} (${tgl(p.pensiun)})`).join("; ") + ". Tidak dihitung dalam jumlah di atas."}) : null);
+    pens.length ? el("p", {class: "pens", text: "Pensiun: " + pens.map(p => `${p.nama} (${tgl(p.pensiun)})`).join("; ") + "."}) : null);
 }
 
 function rute() {
   $("dlg").open && $("dlg").close();
-  const m = location.hash.match(/^#\/desa\/(.+)$/);
-  const d = m && DATA.desa.find(x => x.slug === decodeURIComponent(m[1]));
+  const lama = location.hash.match(/^#\/desa\/(.+)$/);  // alamat gaya lama
+  if (lama) history.replaceState({}, "", BASE + decodeURIComponent(lama[1]) + "/");
+  const slug = slugSekarang();
+  const d = slug && DATA.desa.find(x => x.slug === slug);
+  if (slug && !d) history.replaceState({}, "", BASE);
   if (d) { document.title = `Desa ${d.nama} - Perangkat Desa`; halamanDesa(d); }
   else { document.title = `Perangkat Desa Kecamatan ${DATA.kecamatan}`; beranda(); }
   window.scrollTo(0, 0);
@@ -344,18 +357,20 @@ function pasang(d) {
   $("instansi").textContent = d.instansi || "";
   $("sub").textContent = "";
   const lg = $("logo");
-  if (lg) { const ic = document.createElement("link"); ic.rel = "icon"; ic.href = "logo.png"; document.head.append(ic); }
+  if (lg) {
+    lg.addEventListener("load", () => { const ic = document.createElement("link"); ic.rel = "icon"; ic.href = BASE + "logo.png"; document.head.append(ic); });
+    lg.src = BASE + "logo.png";
+  }
   const tot = d.desa.reduce((a, x) => { const h = hitung(x); return {perangkat: a.perangkat + h.perangkat, staf: a.staf + h.staf}; }, {perangkat: 0, staf: 0});
   $("stats").replaceChildren(
-    el("div", {}, el("b", {text: String(d.desa.length)}), el("span", {text: "desa"})),
-    el("div", {}, el("b", {text: String(tot.perangkat)}), el("span", {text: "perangkat desa"}),
-      tot.staf ? el("small", {text: "& " + tot.staf + " staf perangkat"}) : null));
+    ...[[d.desa.length, "desa"], [tot.perangkat, "perangkat desa"], [tot.staf, "staf perangkat"]]
+      .map(([n, t]) => el("div", {}, el("b", {text: String(n)}), el("span", {text: t}))));
   $("foot").textContent = "Data per " + tgl(d.data_per || d.diperbarui);
-  window.addEventListener("hashchange", rute);
+  window.addEventListener("popstate", rute);
   rute();
 }
 
-fetch("data.json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(pasang)
+fetch(BASE + "data.json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(pasang)
   .catch(() => { $("sub").textContent = "Data belum bisa dimuat. Muat ulang halaman, atau hubungi operator kecamatan."; });
 </script>
 </body>

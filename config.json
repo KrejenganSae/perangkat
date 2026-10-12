@@ -2,11 +2,19 @@
   "instansi": "Pemerintah Kabupaten Probolinggo",
   "kecamatan": "Krejengan",
   "ignore_sheets": [
-    "CATATAN"
+    "CATATAN",
+    "Siltap"
   ],
   "usia_pensiun": 60,
   "bulan_peringatan": 12,
   "usia_min": 17,
   "usia_maks": 80,
-  "lebar_foto": 480
+  "lebar_foto": 480,
+  "siltap": {
+    "kades": 2426640,
+    "sekdes": 2224420,
+    "perangkat": 2022200,
+    "bulan": 12,
+    "bulan_taliasih": 2
+  }
 }

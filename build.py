@@ -31,7 +31,15 @@ DATA = ROOT / "data"
 XLSX = DATA / "perangkat.xlsx"
 FOTO = DATA / "foto"
 DIST = ROOT / "dist"
-CFG = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
+DEFAULT = {
+    "instansi": "Pemerintah Kabupaten Probolinggo", "kecamatan": "Krejengan",
+    "ignore_sheets": ["CATATAN", "Siltap"],
+    "usia_pensiun": 60, "bulan_peringatan": 12, "usia_min": 17, "usia_maks": 80, "lebar_foto": 480,
+    "siltap": {"kades": 2426640, "sekdes": 2224420, "perangkat": 2022200, "bulan": 12, "bulan_taliasih": 2},
+}
+CFG = {**DEFAULT, **json.loads((ROOT / "config.json").read_text(encoding="utf-8"))}  # kunci yang hilang memakai bawaan
+CFG["siltap"] = {**DEFAULT["siltap"], **CFG["siltap"]}
+CFG["ignore_sheets"] = sorted(set(CFG["ignore_sheets"]) | {"CATATAN", "Siltap"})
 
 KOLOM = [
     "NO", "NAMA", "TANGGAL LAHIR", "JENIS KELAMIN", "JABATAN",
@@ -579,4 +587,17 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit:
+        raise
+    except Exception as e:  # galat program: tampilkan sebabnya jelas di Actions
+        import traceback
+        traceback.print_exc()
+        pesan = f"{type(e).__name__}: {e}"
+        print(f"::error title=Build gagal::{pesan}" if os.environ.get("GITHUB_ACTIONS") == "true" else f"Build gagal: {pesan}")
+        ringkasan = os.environ.get("GITHUB_STEP_SUMMARY")
+        if ringkasan:
+            with open(ringkasan, "a", encoding="utf-8") as f:
+                f.write(f"## Build gagal\n\n`{pesan}`\n\nRincian ada di log langkah build.\n")
+        sys.exit(1)

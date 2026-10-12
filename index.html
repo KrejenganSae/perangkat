@@ -129,6 +129,15 @@ table.cl{width:100%;border-collapse:collapse}
 .ck.tdk::before{background:none;box-shadow:inset 0 0 0 1.5px currentColor}
 .ck.kos{color:var(--muted)}
 .ck.kos::before{display:none}
+.sl-box{max-width:28rem;margin:0 auto;border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden}
+.sl{display:flex;justify-content:space-between;gap:1rem;align-items:baseline;padding:.7rem 1.1rem;border-bottom:1px solid var(--line);font-size:.92rem}
+.sl:last-child{border-bottom:0}
+.sl span{color:var(--muted)}
+.sl b{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sl.pos{background:color-mix(in srgb,var(--green) 8%,var(--panel))}
+.sl.pos b,.sl.pos span{color:var(--green)}
+.sl.neg{background:color-mix(in srgb,var(--red) 8%,var(--panel))}
+.sl.neg b,.sl.neg span{color:var(--red)}
 footer{padding:2.5rem 0 2.75rem;text-align:center}
 .orn{display:flex;align-items:center;justify-content:center;gap:.8rem;color:var(--green);font-size:.55rem;margin-bottom:.9rem}
 .orn::before,.orn::after{content:"";width:5.5rem;height:1px;background:linear-gradient(90deg,transparent,var(--line))}
@@ -364,6 +373,7 @@ function halamanDesa(d) {
       el("h2", {style: "font-size:1.1rem"}, judul(g), " ", el("small", {text: "(" + jml(g) + ")"})),
       el("ul", {class: "list"}, per[g].map(p => barisOrang(p, d, false))))),
     checklistSK(per),
+    pagu(d),
     pens.length ? el("p", {class: "pens", text: "Pensiun: " + pens.map(p => `${p.nama} (${tgl(p.pensiun)})`).join("; ") + "."}) : null].filter(Boolean));
 }
 
@@ -382,6 +392,20 @@ function checklistSK(per) {
         el("td", {}, el("div", {class: "nama", text: p.nama}), el("div", {class: "jab", style: "text-transform:capitalize", text: p.jabatan.toLowerCase()})),
         el("td", {}, sel(p.scan_pengangkatan)),
         el("td", {}, sel(p.scan_terakhir)))))));
+}
+
+const rp = (n) => (n < 0 ? "−" : "") + "Rp " + Math.abs(n).toLocaleString("id-ID");
+
+function pagu(d) {
+  const s = d.siltap;
+  if (!s) return null;
+  const baris = (label, nilai, kelas) => el("div", {class: "sl " + (kelas || "")}, el("span", {text: label}), el("b", {text: nilai}));
+  return el("section", {class: "cekl pagu"},
+    el("h2", {text: "Ketersediaan Pagu Siltap"}),
+    el("div", {class: "sl-box"},
+      baris("Pagu Siltap + SILPA Tahun Sebelumnya", s.pagu == null ? "–" : rp(s.pagu)),
+      baris("Estimasi Kebutuhan", rp(s.kebutuhan)),
+      baris("Estimasi SILPA Siltap", s.silpa == null ? "–" : rp(s.silpa), s.silpa == null ? "" : s.silpa < 0 ? "neg" : "pos")));
 }
 
 function rute() {

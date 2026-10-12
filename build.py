@@ -355,11 +355,12 @@ def proses():
             if k != "_folder" and (dk, k) not in foto_terpakai:
                 warning(f"data/foto/{foto_desa['_folder']}", f"{f.name} tidak cocok dengan nama mana pun di Excel")
 
+        orang.extend(lengkapi_struktur(orang, desa))
         cnt = collections.Counter(p["kelompok"] for p in orang)
         if cnt["Perangkat Desa"]:
             info(desa, f"{cnt['Perangkat Desa']} orang berjabatan umum (mis. 'PERANGKAT DESA'), ditempatkan di kelompok Perangkat Desa sampai jabatannya dirinci")
-        if cnt["Perangkat Desa"] < 3 and (cnt["Sekretaris Desa"] < 1 or cnt["Kasi"] < 3 or cnt["Kaur"] < 3):
-            info(desa, f"Struktur belum lengkap: Sekretaris {cnt['Sekretaris Desa']}/1, Kasi {cnt['Kasi']}/3, Kaur {cnt['Kaur']}/3 (baris belum ada di Excel atau jabatannya berbeda)")
+        if cnt["Perangkat Desa"] < 3 and cnt["Sekretaris Desa"] < 1:
+            info(desa, "Sekretaris Desa belum ada di Excel")
         p_desa = pagu.get(dk)
         if p_desa:
             pagu_terpakai.add(dk)
@@ -407,6 +408,34 @@ def ringkas(desa):
         "pensiun_tahun_ini": sum(1 for p in semua if (p.get("pensiun") or "").startswith(str(HARI_INI.year))),
         "foto": sum(1 for p in aktif if p["foto"]),
     }
+
+
+SLOT_KAUR = [("KAUR UMUM", r"UMUM|TATA USAHA"), ("KAUR KEUANGAN", r"KEUANGAN"), ("KAUR PERENCANAAN", r"PERENCANAAN")]
+SLOT_KASI = [("KASI PEMERINTAHAN", r"PEMERINTAHAN"), ("KASI KESRA", r"KESRA|KESEJAHTERAAN"),
+             ("KASI PELAYANAN/PEMBANGUNAN", r"PELAYANAN|PEMBANGUNAN")]
+
+
+def lengkapi_struktur(orang, desa):
+    """Struktur baku: 3 Kaur dan 3 Kasi. Slot yang belum ada barisnya ditambahkan sebagai jabatan kosong."""
+    if sum(1 for p in orang if p["kelompok"] == "Perangkat Desa") >= 3:
+        return []  # jabatan belum dirinci (mis. Kamalkuning): jangan menebak
+    baru, ekstra = [], []
+    for kel, slot in (("Kaur", SLOT_KAUR), ("Kasi", SLOT_KASI)):
+        terpakai = set()
+        for p in (p for p in orang if p["kelompok"] == kel):
+            i = next((i for i, (_, pola) in enumerate(slot) if i not in terpakai and re.search(pola, p["jabatan"].upper())), None)
+            if i is None:
+                ekstra.append(p["jabatan"])
+            else:
+                terpakai.add(i)
+        for i, (nama_slot, _) in enumerate(slot):
+            if i not in terpakai:
+                baru.append({"nama": None, "jabatan": nama_slot, "kelompok": kel, "lowong": True, "foto": None})
+    if baru:
+        info(desa, "Struktur baku belum lengkap di Excel, ditampilkan sebagai jabatan kosong: " + ", ".join(b["jabatan"] for b in baru))
+    if ekstra:
+        info(desa, "Jabatan di luar struktur baku (periksa penulisannya): " + ", ".join(ekstra))
+    return baru
 
 
 def baca_pagu(wb):
